@@ -55,9 +55,9 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
 ] as const;
 
 export const SECONDARY_NAV_ITEMS: readonly NavItem[] = [
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Settings", href: "/account", icon: Settings },
   { label: "Support", href: "/support", icon: ShieldQuestion },
-  { label: "Logout", href: "/logout", icon: LogOut, accent: "danger" },
+  { label: "Logout", href: "/login", icon: LogOut, accent: "danger" },
 ] as const;
 
 export const FOOTER_LINKS = [
