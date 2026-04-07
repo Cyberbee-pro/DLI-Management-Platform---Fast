@@ -118,16 +118,6 @@ const userSchema = new mongoose.Schema(
         required: true,
         default: true,
       },
-      discord: {
-        type: Boolean,
-        required: true,
-        default: false,
-      },
-      slack: {
-        type: Boolean,
-        required: true,
-        default: false,
-      },
     },
   },
   {

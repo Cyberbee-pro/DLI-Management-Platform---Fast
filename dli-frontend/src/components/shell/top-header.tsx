@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { Bell, Search, TerminalSquare } from "lucide-react";
 
-import { OPERATOR_PROFILE } from "@/config/constants";
+import { getUserInitials, type ShellUser } from "@/components/shell/shell.types";
 
-export function TopHeader() {
+export function TopHeader({
+  user,
+  loading,
+}: {
+  user: ShellUser | null;
+  loading: boolean;
+}) {
   return (
     <header className="sticky top-0 z-30 border-b border-[color:var(--line)] bg-black/70 backdrop-blur-xl">
       <div className="flex h-20 items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <Link href="/tasks" className="shrink-0 font-mono text-xl font-bold uppercase tracking-tight text-lime-400 lg:hidden">
+        <Link href="/dashboard" className="shrink-0 font-mono text-lg font-bold uppercase tracking-tight text-lime-400 lg:hidden">
           F.A.S.T.DLI
         </Link>
 
@@ -16,7 +22,7 @@ export function TopHeader() {
           <input
             type="search"
             placeholder="Search terminal..."
-            className="w-full bg-transparent font-mono text-sm uppercase tracking-[0.12em] text-zinc-200 outline-none placeholder:text-zinc-500"
+            className="w-full bg-transparent font-mono text-sm tracking-[0.08em] text-zinc-200 outline-none placeholder:text-zinc-500"
           />
         </label>
 
@@ -36,9 +42,17 @@ export function TopHeader() {
           <TerminalSquare className="h-4 w-4" />
         </button>
 
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-sm uppercase tracking-[0.2em] text-lime-300">
-          {OPERATOR_PROFILE.avatarInitials}
-        </div>
+        <Link
+          href="/account"
+          aria-label="Open account settings"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
+        >
+          {loading ? (
+            <span className="h-3.5 w-3.5 animate-pulse rounded-full bg-lime-300/70" />
+          ) : (
+            getUserInitials(user?.name)
+          )}
+        </Link>
       </div>
     </header>
   );

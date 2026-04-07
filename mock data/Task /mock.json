@@ -1,0 +1,107 @@
+[
+  {
+    "title": "Neural Network Bypass: Vulnerability Audit",
+    "description": "Identify and document potential leaks in the core LLM orchestration layer. Requires deep knowledge of prompt injection.",
+    "category": "ML",
+    "points": {
+      "base": "2250.0",
+      "multiplier": "2.0",
+      "effective": "4500.0"
+    },
+    "isHotBounty": true,
+    "status": "open",
+    "priority": "critical",
+    "difficulty": "advanced",
+    "deadline": "2026-05-01T23:59:59.000Z",
+    "tags": ["llm", "security", "audit"],
+    "createdBy": {
+      "_id": "60d5ecb54cb9f9b5a8d4a111",
+      "name": "Admin SYSTEM",
+      "srmRegNo": "ADMIN-01"
+    }
+  },
+  {
+    "title": "Redesign: Distributed Ledger Consensus",
+    "description": "Propose a more efficient Proof-of-Authority mechanism for the internal DLI registry.",
+    "category": "DevOps",
+    "points": {
+      "base": "1500.0",
+      "multiplier": "1.5",
+      "effective": "2250.0"
+    },
+    "isHotBounty": true,
+    "status": "open",
+    "priority": "high",
+    "difficulty": "advanced",
+    "deadline": "2026-05-05T23:59:59.000Z",
+    "tags": ["blockchain", "infrastructure"],
+    "createdBy": {
+      "_id": "60d5ecb54cb9f9b5a8d4a111",
+      "name": "Admin SYSTEM",
+      "srmRegNo": "ADMIN-01"
+    }
+  },
+  {
+    "title": "Optimize Database Sharding Strategy",
+    "description": "Analyze the current MongoDB cluster and write a script to shard the audit logs collection.",
+    "category": "DevOps",
+    "points": {
+      "base": "850.0",
+      "multiplier": "1.0",
+      "effective": "850.0"
+    },
+    "isHotBounty": false,
+    "status": "open",
+    "priority": "high",
+    "difficulty": "intermediate",
+    "deadline": "2026-05-15T23:59:59.000Z",
+    "tags": ["database", "scaling"],
+    "createdBy": {
+      "_id": "60d5ecb54cb9f9b5a8d4a112",
+      "name": "Alex Rivera",
+      "srmRegNo": "AR-9924-X"
+    }
+  },
+  {
+    "title": "Draft Whitepaper: Zero Knowledge API",
+    "description": "Research and draft a comprehensive guide on implementing ZK proofs for member point verification.",
+    "category": "Content",
+    "points": {
+      "base": "1400.0",
+      "multiplier": "1.0",
+      "effective": "1400.0"
+    },
+    "isHotBounty": false,
+    "status": "open",
+    "priority": "medium",
+    "difficulty": "intermediate",
+    "deadline": "2026-06-01T23:59:59.000Z",
+    "tags": ["research", "documentation"],
+    "createdBy": {
+      "_id": "60d5ecb54cb9f9b5a8d4a112",
+      "name": "Alex Rivera",
+      "srmRegNo": "AR-9924-X"
+    }
+  },
+  {
+    "title": "Refactor CLI Command Parsers",
+    "description": "Update the old argument parser logic in the terminal node client to support the new flag structure.",
+    "category": "Frontend",
+    "points": {
+      "base": "450.0",
+      "multiplier": "1.0",
+      "effective": "450.0"
+    },
+    "isHotBounty": false,
+    "status": "open",
+    "priority": "low",
+    "difficulty": "beginner",
+    "deadline": null,
+    "tags": ["tooling", "cli"],
+    "createdBy": {
+      "_id": "60d5ecb54cb9f9b5a8d4a111",
+      "name": "Admin SYSTEM",
+      "srmRegNo": "ADMIN-01"
+    }
+  }
+]
