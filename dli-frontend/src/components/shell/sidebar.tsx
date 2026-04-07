@@ -32,8 +32,8 @@ function NavigationLink({
     <Link
       href={item.href}
       className={[
-        "group relative flex items-center gap-3 rounded-sm border border-transparent px-4 py-3 text-sm transition-colors",
-        "font-mono uppercase tracking-[0.22em]",
+        "group relative flex items-center gap-3 rounded-sm border border-transparent px-4 py-3 text-xs transition-colors",
+        "font-mono uppercase tracking-[0.2em]",
         active
           ? "border-lime-400/30 bg-white/[0.04] text-lime-300 shadow-[inset_3px_0_0_0_#a3e635]"
           : danger
@@ -59,30 +59,30 @@ export function Sidebar() {
   return (
     <aside className="hidden border-r border-white/5 bg-black/85 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-72 lg:flex-col lg:backdrop-blur">
       <div className="border-b border-[color:var(--line)] px-7 py-7">
-        <Link href="/tasks" className="font-mono text-[2rem] font-bold uppercase tracking-tight text-lime-400">
+        <Link href="/tasks" className="font-mono text-[1.7rem] font-bold uppercase tracking-tight text-lime-400">
           F.A.S.T.DLI
         </Link>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto px-5 py-6">
         <section className="panel-surface rounded-sm border border-[color:var(--line)] px-5 py-5">
-          <p className="font-mono text-lg font-semibold uppercase tracking-[0.18em] text-lime-300">
+          <p className="font-mono text-sm font-semibold uppercase tracking-[0.18em] text-lime-300">
             {OPERATOR_PROFILE.handle}
           </p>
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.32em] text-zinc-500">
+          <p className="mt-2 font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
             {OPERATOR_PROFILE.clearance}
           </p>
 
           <div className="mt-6 flex items-end justify-between gap-3 border-t border-[color:var(--line)] pt-5">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
                 Available XP
               </p>
-              <p className="mt-2 text-3xl font-semibold text-zinc-100">
+              <p className="mt-2 font-mono text-2xl font-semibold text-zinc-100">
                 {OPERATOR_PROFILE.availableXp}
               </p>
             </div>
-            <div className="grid h-14 w-14 place-items-center rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-sm text-lime-300">
+            <div className="grid h-12 w-12 place-items-center rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-xs text-lime-300">
               {OPERATOR_PROFILE.avatarInitials}
             </div>
           </div>
@@ -95,12 +95,12 @@ export function Sidebar() {
         </nav>
 
         <section className="panel-surface mt-6 rounded-sm border border-[color:var(--line)] px-5 py-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.32em] text-zinc-500">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
             System Pool Balance
           </p>
           <div className="mt-4 flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_12px_#a3e635]" />
-            <p className="text-3xl font-semibold text-zinc-100">
+            <p className="font-mono text-2xl font-semibold text-zinc-100">
               {OPERATOR_PROFILE.systemPoolBalance}
             </p>
           </div>
@@ -108,7 +108,7 @@ export function Sidebar() {
 
         <button
           type="button"
-          className="mt-6 rounded-sm bg-lime-400 px-4 py-4 font-mono text-sm font-semibold uppercase tracking-[0.24em] text-black transition hover:bg-lime-300"
+          className="mt-6 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-lime-300"
         >
           Deploy New Task
         </button>

@@ -1,66 +1,98 @@
 import { ArrowUpRight, Clock3 } from "lucide-react";
 
-import type { HotBounty } from "@/config/constants";
 import { DifficultyMeter } from "./difficulty-meter";
+import type { TaskRecord } from "./types";
 
-export function HotBountyCard({ bounty }: { bounty: HotBounty }) {
+function formatMultiplier(multiplier: number) {
+  return `${multiplier.toFixed(1)}x multiplier`;
+}
+
+function formatDeadline(deadline?: string | null) {
+  if (!deadline) {
+    return "Open cycle";
+  }
+
+  const delta = new Date(deadline).getTime() - Date.now();
+  if (Number.isNaN(delta) || delta <= 0) {
+    return "Due now";
+  }
+
+  const totalHours = Math.floor(delta / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  const minutes = Math.floor((delta % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  }
+
+  return `${hours}h ${minutes}m`;
+}
+
+function getTaskAccent(task: TaskRecord) {
+  return task.tags[0]?.replace(/[-_]/g, " ") ?? task.category;
+}
+
+export function HotBountyCard({ task }: { task: TaskRecord }) {
   return (
-    <article className="panel-surface relative overflow-hidden rounded-sm border border-[color:var(--line)] p-6">
-      <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-lime-300 via-lime-400 to-transparent" />
+    <article className="panel-surface relative overflow-hidden rounded-sm border border-neutral-800 p-5">
+      <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-lime-400 via-lime-400/60 to-transparent" />
 
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-sm border border-lime-400/25 bg-lime-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.28em] text-lime-300">
-            {bounty.emphasis}
+          <span className="rounded-sm border border-neutral-800 bg-neutral-900 px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-lime-300">
+            {getTaskAccent(task)}
           </span>
-          <span className="rounded-sm border border-fuchsia-400/20 bg-fuchsia-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.28em] text-fuchsia-200">
-            {bounty.multiplier}
+          <span className="rounded-sm border border-neutral-800 bg-black/30 px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-zinc-400">
+            {formatMultiplier(task.points.multiplier)}
           </span>
         </div>
 
         <div className="text-right">
-          <p className="text-5xl font-semibold tracking-tight text-lime-300">
-            {bounty.reward.toLocaleString()}
+          <p className="font-mono text-2xl font-semibold tracking-tight text-lime-300">
+            {task.points.effective.toLocaleString()}
           </p>
-          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.32em] text-zinc-500">
+          <p className="mt-1 font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
             DLI Credits
           </p>
         </div>
       </div>
 
-      <div className="mt-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-zinc-500">
-          {bounty.category} Bounty
+      <div className="mt-5">
+        <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
+          {task.category} / {task.status}
         </p>
-        <h3 className="mt-3 max-w-xl text-4xl font-semibold uppercase leading-none tracking-tight text-zinc-50">
-          {bounty.title}
+        <h3 className="mt-2 max-w-xl text-xl font-semibold uppercase leading-tight tracking-tight text-zinc-50">
+          {task.title}
         </h3>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">
-          {bounty.description}
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+          {task.description}
         </p>
       </div>
 
-      <div className="mt-10 flex flex-col gap-6 border-t border-[color:var(--line)] pt-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <DifficultyMeter difficulty={bounty.difficulty} />
+      <div className="mt-6 flex flex-col gap-5 border-t border-neutral-800 pt-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <DifficultyMeter difficulty={task.difficulty} />
 
-          <div className="space-y-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+          <div className="space-y-1.5">
+            <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
               Time Remaining
             </p>
-            <div className="flex items-center gap-2 text-sm font-medium tracking-[0.18em] text-rose-200">
-              <Clock3 className="h-4 w-4" />
-              <span className="font-mono uppercase">{bounty.timeRemaining}</span>
+            <div className="flex items-center gap-2 text-xs text-zinc-300">
+              <Clock3 className="h-3.5 w-3.5 text-lime-300" />
+              <span className="font-mono uppercase tracking-[0.18em]">
+                {formatDeadline(task.deadline)}
+              </span>
             </div>
           </div>
         </div>
 
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-6 py-4 font-mono text-sm font-semibold uppercase tracking-[0.24em] text-black transition hover:bg-lime-300"
+          className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-lime-300"
         >
           Claim Task
-          <ArrowUpRight className="h-4 w-4" />
+          <ArrowUpRight className="h-3.5 w-3.5" />
         </button>
       </div>
     </article>
