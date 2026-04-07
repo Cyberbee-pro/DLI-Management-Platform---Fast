@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Flame, LoaderCircle, SlidersHorizontal, Wifi } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
   API_BASE_URL,
@@ -49,6 +50,7 @@ function sortTasks(tasks: TaskRecord[], sortBy: TaskSortOption) {
 }
 
 export default function TaskBoardPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,11 +59,16 @@ export default function TaskBoardPage() {
   const [sortBy, setSortBy] = useState<TaskSortOption>(TASK_SORT_OPTIONS[0]);
 
   useEffect(() => {
+    const token = window.localStorage.getItem("token");
+    const taskEndpoint = buildTaskEndpoint();
     let isCancelled = false;
 
-    async function loadTasks() {
-      const taskEndpoint = buildTaskEndpoint();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
 
+    async function loadTasks() {
       if (!taskEndpoint) {
         if (!isCancelled) {
           setError("NEXT_PUBLIC_API_URL is not configured, so the live task feed cannot load.");
@@ -76,22 +83,23 @@ export default function TaskBoardPage() {
 
         const response = await fetch(taskEndpoint, {
           method: "GET",
-          credentials: "include",
+          cache: "no-store",
           headers: {
             Accept: "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
 
         const payload = (await response.json().catch(() => null)) as TasksApiResponse | null;
 
         if (!response.ok) {
-          const backendMessage =
-            payload?.message ??
-            (response.status === 401
-              ? "Live tasks require an authenticated session."
-              : `Failed to load tasks (${response.status}).`);
+          if (response.status === 401) {
+            window.localStorage.removeItem("token");
+            router.push("/login");
+            return;
+          }
 
-          throw new Error(backendMessage);
+          throw new Error(payload?.message ?? `Failed to load tasks (${response.status}).`);
         }
 
         const nextTasks = Array.isArray(payload?.data) ? payload.data : [];
@@ -120,7 +128,7 @@ export default function TaskBoardPage() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [router]);
 
   const activeTasks = tasks.filter((task) => task.status !== "completed");
   const categoryFilteredTasks =
@@ -158,8 +166,7 @@ export default function TaskBoardPage() {
               Task <span className="text-lime-400">Board</span>
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-              Tactical access to live bounties, queue depth, and submission pipelines for
-              the {` `}
+              Tactical access to live bounties, queue depth, and submission pipelines for the{" "}
               {OPERATOR_PROFILE.handle.toLowerCase().replace("_", " ")} node.
             </p>
           </div>
@@ -318,27 +325,6 @@ export default function TaskBoardPage() {
             </div>
           </div>
         </article>
-      </section>
-
-      <section className="grid gap-4 border-t border-neutral-800 pt-5 font-mono text-xs uppercase tracking-[0.24em] text-zinc-500 sm:grid-cols-3">
-        <p>
-          API Endpoint
-          <span className="mt-2 block text-sm tracking-[0.14em] text-zinc-200">
-            {buildTaskEndpoint() || "Missing"}
-          </span>
-        </p>
-        <p>
-          Queue State
-          <span className="mt-2 block text-sm tracking-[0.14em] text-lime-300">
-            {loading ? "Syncing" : error ? "Degraded" : "Live"}
-          </span>
-        </p>
-        <p>
-          Protocol
-          <span className="mt-2 block text-sm tracking-[0.14em] text-zinc-200">
-            F.A.S.T. v4.2
-          </span>
-        </p>
       </section>
     </div>
   );
