@@ -54,13 +54,12 @@ app.use(limiter);
 app.use(express.json());
 
 
-// System Health Check Endpoint
-app.get("/health", (req, res) => {
+// Root/Health Check
+app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    status: "OPTIMAL",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
+    message: "F.A.S.T. DLI API Terminal — Systems Optimal",
+    version: "1.0.0"
   });
 });
 
