@@ -78,6 +78,7 @@ async function login(req, res) {
       },
     });
   } catch (error) {
+    console.error("CRASH DURING LOGIN:", error);
     const isProduction = process.env.NODE_ENV === "production";
     const errorData = isProduction ? null : error.stack || error.message;
 

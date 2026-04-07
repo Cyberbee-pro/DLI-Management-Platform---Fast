@@ -53,6 +53,18 @@ app.use(limiter);
 // Parse incoming request bodies in JSON format
 app.use(express.json());
 
+
+// System Health Check Endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "OPTIMAL",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
 // Main App API Routing
 app.use("/api/v1/auth", require("./routes/auth.routes"));
 app.use("/api/v1/courses", require("./routes/course.routes"));
