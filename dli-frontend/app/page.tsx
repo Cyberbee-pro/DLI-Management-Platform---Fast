@@ -4,6 +4,9 @@ import { useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
+import BorderGlow from "@/components/BorderGlow";
+
+
 
 export default function BrilliantLanding() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,23 +108,49 @@ export default function BrilliantLanding() {
 
       {/* 3. BENTO ECOSYSTEM (REFINED) */}
       <section className="px-6 py-32 bg-neutral-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-24">
-            <h3 className="text-6xl md:text-8xl font-bold tracking-tighter italic">The <span className="not-italic">Ecosystem.</span></h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="md:col-span-2 aspect-video bg-neutral-900 rounded-3xl p-12 flex flex-col justify-end border border-white/5">
-                <h4 className="text-4xl font-bold tracking-tight mb-4">Task Board</h4>
-                <p className="text-neutral-500 max-w-sm">Live bounty system for deep learning infrastructure projects.</p>
-             </div>
-             <div className="aspect-square bg-lime-500 rounded-3xl p-12 flex flex-col justify-between text-black">
-                <ArrowRight size={48} className="-rotate-45" />
-                <h4 className="text-3xl font-bold tracking-tight">Access <br/> Registry.</h4>
-             </div>
-          </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-24">
+          <h3 className="text-6xl md:text-8xl font-bold tracking-tighter italic">
+            The <span className="not-italic">Ecosystem.</span>
+          </h3>
         </div>
-      </section>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Task Board Card */}
+          <Link href="/tasks" className="md:col-span-2">
+            <BorderGlow
+              borderRadius={24} // Matches rounded-3xl
+              glowColor="163 230 53" // Lime-400
+              glowRadius={100}
+              glowIntensity={1.5}
+            >
+              <div className="group h-full aspect-video bg-neutral-900 rounded-3xl p-12 flex flex-col justify-end border border-white/5 transition-all duration-400 ease-in-out hover:bg-lime-500/15  ">
+                <h4 className="text-4xl font-bold tracking-tight mb-4">Task Board</h4>
+                <p className="text-neutral-500 max-w-sm group-hover:text-white">
+                  Live bounty system for deep learning infrastructure projects.
+                </p>
+              </div>
+            </BorderGlow>
+          </Link>
+
+          {/* Access Registry Card */}
+          <Link href="/login">
+            <BorderGlow
+              borderRadius={24}
+              glowColor="0 0 0" // Darker glow since the card is already lime
+              glowRadius={80}
+            >
+              <div className="h-full aspect-square bg-lime-500 rounded-3xl p-12 flex flex-col justify-between text-black transition-transform duration-300 hover:scale-[0.98]">
+                <ArrowRight size={48} className="-rotate-45" />
+                <h4 className="text-3xl font-bold tracking-tight">
+                  Access <br /> Registry.
+                </h4>
+              </div>
+            </BorderGlow>
+          </Link>
+        </div>
+      </div>
+    </section>
 
       {/* 4. FOOTER */}
       <footer className="px-8 py-12 flex flex-col md:flex-row justify-between items-center border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600">

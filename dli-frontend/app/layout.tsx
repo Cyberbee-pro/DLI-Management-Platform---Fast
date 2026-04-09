@@ -1,5 +1,10 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "F.A.S.T. DLI Platform",
@@ -12,8 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-background">
-      <body className="min-h-screen bg-background text-foreground antialiased">{children}</body>
+    // Added "dark" class here to force the theme regardless of system settings
+    <html lang="en" className={cn("h-full bg-black dark", geist.variable)}>
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+        {children}
+      </body>
     </html>
   );
 }

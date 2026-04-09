@@ -38,10 +38,10 @@ function NavigationLink({
     "group relative flex items-center gap-3 rounded-sm border border-transparent px-4 py-3 text-xs transition-colors",
     "font-mono uppercase tracking-[0.2em]",
     active
-      ? "border-lime-400/30 bg-white/[0.04] text-lime-300 shadow-[inset_3px_0_0_0_#a3e635]"
+      ? "border-lime-400/30 bg-white/[0.04] text-lime-400 shadow-[inset_3px_0_0_0_#a3e635]"
       : danger
         ? "text-rose-200/75 hover:bg-white/[0.03] hover:text-rose-200"
-        : "text-zinc-400 hover:bg-white/[0.03] hover:text-zinc-100",
+        : "text-neutral-400 hover:bg-white/[0.03] hover:text-zinc-100",
   ].join(" ");
 
   if (onClick) {
@@ -91,8 +91,8 @@ export function Sidebar({
 
   return (
     <aside className="hidden border-r border-white/5 bg-black/85 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-72 lg:flex-col lg:backdrop-blur">
-      <div className="border-b border-[color:var(--line)] px-7 py-7">
-        <Link href="/dashboard" className="font-mono text-[1.7rem] font-bold uppercase tracking-tight text-lime-400">
+      <div className="border-b border-[color:var(--line)] flex h-16 items-center justify-center px-7">
+        <Link href="/" className="font-mono text-[1.7rem] font-bold uppercase tracking-tight text-lime-400">
           F.A.S.T.DLI
         </Link>
       </div>
@@ -197,8 +197,8 @@ export function MobileNavigation() {
               className={[
                 "whitespace-nowrap rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.28em]",
                 active
-                  ? "border-lime-400/40 bg-lime-400/15 text-lime-300"
-                  : "border-white/8 bg-white/[0.02] text-zinc-500",
+                  ? "border-lime-400/40 bg-lime-400/15 text-lime-400"
+                  : "border-white/8 bg-white/[0.02] text-neutral-400",
               ].join(" ")}
             >
               {item.label}
