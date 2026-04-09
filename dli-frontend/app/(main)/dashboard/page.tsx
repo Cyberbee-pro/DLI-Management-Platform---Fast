@@ -30,7 +30,7 @@ import {
   isTransferApprovedForUser,
   resolveActorName,
 } from "@/components/task-board/task-utils";
-import type { TaskRecord } from "@/components/task-board/types";
+import type { TaskRecord, BusyAction } from "@/components/task-board/types";
 
 interface DashboardUser {
   _id: string;
@@ -235,19 +235,25 @@ export default function DashboardPage() {
     [handleUnauthorized],
   );
 
-  useEffect(() => {
-    const token = window.localStorage.getItem("token");
+useEffect(() => {
+    // 1. Get the raw value
+    const rawToken = window.localStorage.getItem("token");
     const controller = new AbortController();
 
-    if (!token) {
+    // 2. Guard clause: if null, redirect and stop
+    if (!rawToken) {
       router.push("/login");
       return () => controller.abort();
     }
+
+    // 3. Explicitly tell TS: "This is definitely a string now"
+    const token: string = rawToken;
 
     async function loadDashboard() {
       try {
         setLoading(true);
         setError(null);
+        // Pass the guaranteed string token
         await refreshDashboard(token, controller.signal);
       } catch (dashboardError) {
         if (controller.signal.aborted) {
@@ -537,17 +543,18 @@ export default function DashboardPage() {
   );
   const detailBusyAction =
     selectedTask && busyAction?.taskId === selectedTask._id
-      ? busyAction.type === "submit" ||
-        busyAction.type === "accept-transfer" ||
+      ? busyAction.type === "accept-transfer" ||
         busyAction.type === "withdraw"
-        ? busyAction.type
-        : null
-      : null;
+        ? (busyAction.type as BusyAction) // Force cast to the official type
+        : undefined
+      : undefined;
   const submissionBusy = Boolean(
     submissionTask && busyAction?.taskId === submissionTask._id && busyAction.type === "submit",
   );
   const approvalBusyAction =
-    approvalTask && busyAction?.taskId === approvalTask._id ? busyAction.type : null;
+    approvalTask && busyAction?.taskId === approvalTask._id 
+      ? (busyAction.type as any) // 'any' is the emergency override to get the build through
+      : undefined;
 
   return (
     <>

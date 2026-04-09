@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -21,14 +22,7 @@ import {
   resolveActorName,
   resolveTaskOwnerName,
 } from "./task-utils";
-import type { TaskRecord } from "./types";
-
-type BusyAction =
-  | "claim"
-  | "transfer"
-  | "accept-transfer"
-  | "withdraw"
-  | null;
+import type { TaskRecord, BusyAction } from "./types";
 
 interface TaskDetailModalProps {
   open: boolean;
@@ -62,28 +56,31 @@ export function TaskDetailModal({
   onAcceptTransfer,
   onWithdraw,
   onOpenSubmit,
-}: TaskDetailModalProps) {
+}: TaskDetailModalProps): React.ReactNode {
   if (!task) {
     return null;
   }
 
-  const claimedByMe = isTaskAssignedToUser(task, currentUserId);
-  const transferToMe = resolveActorId(task.transferRequest?.to ?? null) === currentUserId;
-  const transferPending = task.transferRequest?.status === "pending";
+  // Explicitly cast task as non-null for TypeScript type narrowing
+  const safeTask = task as TaskRecord;
+  
+  const claimedByMe = isTaskAssignedToUser(safeTask, currentUserId);
+  const transferToMe = resolveActorId(safeTask.transferRequest?.to ?? null) === currentUserId;
+  const transferPending = safeTask.transferRequest?.status === "pending";
   const transferApproved =
-    task.transferRequest?.status === "approved" && task.transferRequest.adminApproved;
-  const transferTargetName = resolveActorName(task.transferRequest?.to ?? null, "TARGET_NODE");
-  const isClaimed = isTaskClaimed(task);
-  const hasSubmission = Boolean(task.submissionDetails?.url);
-  const submitDisabled = task.status === "completed";
-  const withdrawDisabled = task.status !== "claimed";
+    safeTask.transferRequest?.status === "approved" && safeTask.transferRequest.adminApproved;
+  const transferTargetName = resolveActorName(safeTask.transferRequest?.to ?? null, "TARGET_NODE");
+  const isClaimed = isTaskClaimed(safeTask);
+  const hasSubmission = Boolean(safeTask.submissionDetails?.url);
+  const submitDisabled = safeTask.status === "completed";
+  const withdrawDisabled = safeTask.status !== "claimed";
 
   function renderPrimaryActions() {
     if (!isClaimed) {
       return (
         <button
           type="button"
-          onClick={() => onClaim?.(task)}
+          onClick={() => onClaim?.(safeTask)}
           disabled={busyAction === "claim" || !onClaim}
           className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -97,7 +94,7 @@ export function TaskDetailModal({
       return (
         <button
           type="button"
-          onClick={() => onAcceptTransfer?.(task)}
+          onClick={() => onAcceptTransfer?.(safeTask)}
           disabled={busyAction === "accept-transfer" || !onAcceptTransfer}
           className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -116,7 +113,7 @@ export function TaskDetailModal({
         <>
           <button
             type="button"
-            onClick={() => onOpenSubmit?.(task)}
+            onClick={() => onOpenSubmit?.(safeTask)}
             disabled={submitDisabled || !onOpenSubmit}
             className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -130,7 +127,7 @@ export function TaskDetailModal({
 
           <button
             type="button"
-            onClick={() => onWithdraw?.(task)}
+            onClick={() => onWithdraw?.(safeTask)}
             disabled={withdrawDisabled || busyAction === "withdraw" || !onWithdraw}
             className="inline-flex items-center justify-center gap-2 rounded-sm border border-neutral-800 bg-black px-4 py-3 font-mono text-xs uppercase tracking-[0.2em] text-neutral-300 transition hover:border-rose-400/30 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -138,9 +135,9 @@ export function TaskDetailModal({
             {busyAction === "withdraw" ? "WITHDRAWING..." : "WITHDRAW"}
           </button>
 
-          {task.submissionDetails?.url ? (
+          {safeTask.submissionDetails?.url ? (
             <a
-              href={task.submissionDetails.url}
+              href={safeTask.submissionDetails.url}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-sm border border-neutral-800 bg-black px-4 py-3 font-mono text-xs uppercase tracking-[0.2em] text-lime-400 transition hover:border-lime-400/30 hover:bg-lime-400/10"
@@ -156,7 +153,7 @@ export function TaskDetailModal({
     return (
       <button
         type="button"
-        onClick={() => onRequestTransfer?.(task)}
+        onClick={() => onRequestTransfer?.(safeTask)}
         disabled={transferPending || busyAction === "transfer" || !onRequestTransfer}
         className="inline-flex items-center justify-center gap-2 rounded-sm border border-lime-400/30 bg-black px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-lime-400 transition hover:bg-lime-400/10 disabled:cursor-not-allowed disabled:opacity-60"
       >
@@ -174,7 +171,7 @@ export function TaskDetailModal({
     <TaskModalShell
       open={open}
       onClose={onClose}
-      title={task.title}
+      title={safeTask.title}
       subtitle="Full mission context, transfer state, and submission controls."
     >
       <div className="space-y-6 px-5 py-5 sm:px-6">
@@ -182,12 +179,12 @@ export function TaskDetailModal({
           <section className="space-y-5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-sm border border-neutral-800 bg-black px-2.5 py-1 font-mono text-xs uppercase tracking-[0.18em] text-neutral-400">
-                {task.category}
+                {safeTask.category}
               </span>
               <span className="rounded-sm border border-neutral-800 bg-black px-2.5 py-1 font-mono text-xs uppercase tracking-[0.18em] text-lime-300">
-                {formatTaskStatus(task.status)}
+                {formatTaskStatus(safeTask.status)}
               </span>
-              {task.tags.map((tag) => (
+              {safeTask.tags.map((tag) => (
                 <TagBadge key={tag} label={tag.replace(/[-_]/g, " ")} />
               ))}
             </div>
@@ -197,7 +194,7 @@ export function TaskDetailModal({
                 Full Description
               </p>
               <div className="mt-4">
-                <TaskMarkdown content={task.description} />
+                <TaskMarkdown content={safeTask.description} />
               </div>
             </div>
           </section>
@@ -208,7 +205,7 @@ export function TaskDetailModal({
                 Points Available
               </p>
               <p className="mt-2 font-mono text-3xl font-semibold text-lime-400">
-                {task.points.effective.toLocaleString()}
+                {safeTask.points.effective.toLocaleString()}
               </p>
               <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">
                 XP
@@ -222,7 +219,7 @@ export function TaskDetailModal({
                   <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500">
                     Deployed By
                   </p>
-                  <p className="mt-1 text-zinc-100">{task.createdBy?.name ?? "SYSTEM_NODE"}</p>
+                  <p className="mt-1 text-zinc-100">{safeTask.createdBy?.name ?? "SYSTEM_NODE"}</p>
                 </div>
               </div>
 
@@ -238,9 +235,9 @@ export function TaskDetailModal({
                 </div>
               </div>
 
-              {task.repoUrl ? (
+              {safeTask.repoUrl ? (
                 <a
-                  href={task.repoUrl}
+                  href={safeTask.repoUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between rounded-sm border border-neutral-800 bg-neutral-900/40 px-3 py-3 text-neutral-300 transition hover:border-lime-400/30 hover:text-lime-300"

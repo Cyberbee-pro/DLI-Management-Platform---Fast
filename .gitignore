@@ -43,3 +43,5 @@ next-env.d.ts
 
 #AI Agents
 .codex
+latestpropt.md
+.vscode
