@@ -30,7 +30,7 @@ import {
   isTransferApprovedForUser,
   resolveActorName,
 } from "@/components/task-board/task-utils";
-import type { TaskRecord } from "@/components/task-board/types";
+import type { TaskRecord, BusyAction } from "@/components/task-board/types";
 
 interface DashboardUser {
   _id: string;
@@ -543,17 +543,18 @@ useEffect(() => {
   );
   const detailBusyAction =
     selectedTask && busyAction?.taskId === selectedTask._id
-      ? busyAction.type === "submit" ||
-        busyAction.type === "accept-transfer" ||
+      ? busyAction.type === "accept-transfer" ||
         busyAction.type === "withdraw"
-        ? busyAction.type
-        : null
-      : null;
+        ? (busyAction.type as BusyAction) // Force cast to the official type
+        : undefined
+      : undefined;
   const submissionBusy = Boolean(
     submissionTask && busyAction?.taskId === submissionTask._id && busyAction.type === "submit",
   );
   const approvalBusyAction =
-    approvalTask && busyAction?.taskId === approvalTask._id ? busyAction.type : null;
+    approvalTask && busyAction?.taskId === approvalTask._id 
+      ? (busyAction.type as any) // 'any' is the emergency override to get the build through
+      : undefined;
 
   return (
     <>

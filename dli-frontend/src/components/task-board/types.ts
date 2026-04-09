@@ -86,3 +86,10 @@ export interface TasksApiResponse {
   message?: string;
   code?: string;
 }
+
+export type BusyAction =
+  | "claim"
+  | "transfer"
+  | "accept-transfer"
+  | "withdraw"
+  | null;

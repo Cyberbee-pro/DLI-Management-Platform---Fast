@@ -1,10 +1,10 @@
 import type { TaskActor, TaskRecord, TaskStatus } from "./types";
 
-function isActorReference(actor: TaskActor): actor is Exclude<TaskActor, string | null> {
+function isActorReference(actor: TaskActor | undefined): actor is Exclude<TaskActor, string | null | undefined> {
   return Boolean(actor && typeof actor === "object" && "_id" in actor);
 }
 
-export function resolveActorId(actor: TaskActor): string | null {
+export function resolveActorId(actor: TaskActor | undefined): string | null {
   if (!actor) {
     return null;
   }

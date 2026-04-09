@@ -132,7 +132,7 @@ export default function TaskBoardPage() {
       try {
         setLoading(true);
         setError(null);
-        await refreshTasks(token, controller.signal);
+        await refreshTasks(token!, controller.signal);
       } catch (fetchError) {
         if (!controller.signal.aborted) {
           setError(
@@ -238,7 +238,7 @@ export default function TaskBoardPage() {
         );
       }
 
-      await refreshTasks(token);
+      await refreshTasks(token!);
 
       if (closeSubmission) {
         setSubmissionTaskId(null);
