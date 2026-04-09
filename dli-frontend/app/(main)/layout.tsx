@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { API_BASE_URL } from "@/config/constants";
 import { AppFooter } from "@/components/shell/app-footer";
@@ -20,9 +20,11 @@ export default function MainLayout({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<ShellUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
@@ -94,16 +96,28 @@ export default function MainLayout({
     return () => controller.abort();
   }, [router]);
 
+  useEffect(() => {
+    setMobileNavigationOpen(false);
+  }, [pathname]);
+
   return (
     <>
-      <Sidebar user={user} loading={loading} />
+      <Sidebar
+        user={user}
+        loading={loading}
+        mobileOpen={mobileNavigationOpen}
+        onClose={() => setMobileNavigationOpen(false)}
+      />
 
-      <div className="min-h-screen lg:pl-72">
+      <div className="min-h-screen max-w-full overflow-x-hidden lg:pl-72">
         <TopHeader user={user} loading={loading} />
-        <MobileNavigation />
+        <MobileNavigation
+          isOpen={mobileNavigationOpen}
+          onToggle={() => setMobileNavigationOpen((current) => !current)}
+        />
 
         <div className="flex min-h-[calc(100vh-5rem)] flex-col">
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+          <main className="flex-1 max-w-full overflow-x-hidden px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
             {loading ? (
               <div className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
                 <div className="animate-pulse">

@@ -1,11 +1,19 @@
 const User = require("../models/User");
 const CourseRequest = require("../models/CourseRequest");
 const Task = require("../models/Task");
+const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
+
+function withTaskRelations(query) {
+  return query
+    .populate("assignedTo", "name role avatarUrl srmRegNo")
+    .populate("transferRequest.from", "name role avatarUrl")
+    .populate("transferRequest.to", "name role avatarUrl");
+}
 
 /**
  * Fetches the dashboard properties for the authenticated user, excluding passwords.
- * Aggregates their personal course requests and active tasks, sorted by recent activity.
+ * Aggregates their personal course requests and claimed tasks, sorted by recent activity.
  *
  * @param {object} req - Express request object
  * @param {object} res - Express response object
@@ -26,18 +34,67 @@ exports.getMyDashboard = async (req, res, next) => {
       });
     }
 
-    // Parallel fetch for user's courses and claimed tasks
-    const [courseRequests, activeTasks] = await Promise.all([
+    const governanceTaskFilter =
+      user.role === "admin"
+        ? { status: "in_review" }
+        : {
+            status: "in_review",
+            "createdBy._id": userId,
+          };
+
+    const [
+      courseRequests,
+      claimedTasks,
+      pendingTaskApprovals,
+      rawPendingCourseApprovals,
+    ] = await Promise.all([
       CourseRequest.find({ requestedBy: userId }).sort({ requestedAt: -1 }),
-      Task.find({ claimedBy: userId }).sort({ updatedAt: -1 }),
+      withTaskRelations(
+        Task.find({
+          status: { $in: ["claimed", "in_review"] },
+          $or: [
+            { assignedTo: userId },
+            { "claimedBy._id": userId },
+            {
+              "transferRequest.to": userId,
+              "transferRequest.adminApproved": true,
+              "transferRequest.status": "approved",
+            },
+          ],
+        }).sort({ updatedAt: -1 }),
+      ),
+      withTaskRelations(Task.find(governanceTaskFilter).sort({ updatedAt: -1 })),
+      user.role === "admin"
+        ? CourseRequest.find({ status: "pending" }).sort({ requestedAt: -1 })
+        : Promise.resolve([]),
     ]);
+
+    const pendingCourseApprovals = await Promise.all(
+      rawPendingCourseApprovals.map(async (request) => ({
+        ...serializeDocument(request),
+        standing: await getRecentPointsStanding(request.requestedBy._id),
+      })),
+    );
+    const serializedPendingTaskApprovals = pendingTaskApprovals.map((task) =>
+      serializeDocument(task),
+    );
+    const canReviewTasks =
+      user.role === "admin" || serializedPendingTaskApprovals.length > 0;
+    const canReviewCourses = user.role === "admin";
 
     res.status(200).json({
       success: true,
       data: {
         user: serializeDocument(user),
         courseRequests: courseRequests.map((cr) => serializeDocument(cr)),
-        activeTasks: activeTasks.map((task) => serializeDocument(task)),
+        claimedTasks: claimedTasks.map((task) => serializeDocument(task)),
+        activeTasks: claimedTasks.map((task) => serializeDocument(task)),
+        governance: {
+          canReviewTasks,
+          canReviewCourses,
+          pendingTaskApprovals: serializedPendingTaskApprovals,
+          pendingCourseApprovals,
+        },
       },
     });
   } catch (error) {

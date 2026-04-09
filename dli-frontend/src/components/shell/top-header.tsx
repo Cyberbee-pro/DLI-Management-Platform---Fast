@@ -11,35 +11,40 @@ export function TopHeader({
   loading: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[color:var(--line)] bg-black/70 backdrop-blur-xl">
-      <div className="flex h-20 items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <Link href="/dashboard" className="shrink-0 font-mono text-lg font-bold uppercase tracking-tight text-lime-400 lg:hidden">
-          F.A.S.T.DLI
+    <header className="sticky top-0 z-30 h-20 border-b border-[color:var(--line)] bg-black/70 backdrop-blur-xl">
+      <div className="flex h-full items-center gap-3 px-4 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          aria-label="Go to the home page"
+          className="inline-flex shrink-0 items-center gap-1 text-xl font-black italic tracking-tighter text-white lg:hidden"
+        >
+          <span>F.A.S.T.</span>
+          <span className="font-bold not-italic text-lime-400">DLI</span>
         </Link>
 
-        <label className="ml-auto flex max-w-xl flex-1 items-center gap-3 rounded-sm border border-white/8 bg-white/[0.04] px-4 py-3 text-zinc-400 sm:max-w-md">
-          <Search className="h-4 w-4 text-lime-300" />
+        <label className="ml-auto flex max-w-xl flex-1 items-center gap-3 rounded-sm border border-white/8 bg-white/[0.04] px-4 py-3 text-neutral-500 sm:max-w-md">
+          <Search className="h-5 w-5 text-neutral-500" />
           <input
             type="search"
             placeholder="Search terminal..."
-            className="w-full bg-transparent font-mono text-sm tracking-[0.08em] text-zinc-200 outline-none placeholder:text-zinc-500"
+            className="w-full bg-transparent font-mono text-sm tracking-[0.08em] text-zinc-200 outline-none placeholder:text-neutral-500"
           />
         </label>
 
         <button
           type="button"
           aria-label="Open notifications"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/[0.02] text-zinc-300 transition hover:border-lime-400/25 hover:text-lime-300"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/[0.02] text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400"
         >
-          <Bell className="h-4 w-4" />
+          <Bell className="h-5 w-5" />
         </button>
 
         <button
           type="button"
           aria-label="Open terminal shortcuts"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/[0.02] text-zinc-300 transition hover:border-lime-400/25 hover:text-lime-300"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/[0.02] text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400"
         >
-          <TerminalSquare className="h-4 w-4" />
+          <TerminalSquare className="h-5 w-5" />
         </button>
 
         <Link

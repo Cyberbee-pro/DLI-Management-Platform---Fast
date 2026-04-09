@@ -51,7 +51,7 @@ const getUsersLeaderboard = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const users = await User.find({})
-      .select("_id name srmRegNo role points")
+      .select("_id name srmRegNo role rank avatarUrl githubUsername linkedinUrl points")
       .sort({ "points.balance": -1 })
       .skip(skip)
       .limit(limit)
