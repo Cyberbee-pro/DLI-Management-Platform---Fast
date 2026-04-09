@@ -9,7 +9,7 @@ router.get("/", async (_req, res) => {
   try {
     const users = await User.find(
       {},
-      "name role githubUsername linkedinUrl points.balance avatarUrl -_id",
+      "name role githubUsername linkedinUrl points.balance avatarUrl",
     )
       .sort({ "points.balance": -1 })
       .lean();

@@ -1,22 +1,17 @@
 import { ArrowRight, ListTree } from "lucide-react";
 
 import { DifficultyMeter } from "./difficulty-meter";
+import { formatTaskId, getTaskTag, isTaskClaimed } from "./task-utils";
 import type { TaskRecord } from "./types";
-
-function formatTaskId(taskId: string) {
-  return taskId.slice(-8).toUpperCase();
-}
-
-function getTaskTag(task: TaskRecord) {
-  return task.tags[0]?.replace(/[-_]/g, " ") ?? task.category;
-}
 
 export function TaskQueue({
   tasks,
   loading,
+  onInspect,
 }: {
   tasks: TaskRecord[];
   loading: boolean;
+  onInspect?: (task: TaskRecord) => void;
 }) {
   return (
     <section className="space-y-4">
@@ -50,12 +45,20 @@ export function TaskQueue({
             {tasks.map((task) => (
               <article
                 key={task._id}
-                className="grid gap-4 px-6 py-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_minmax(0,0.7fr)_auto] lg:items-center"
+                className="grid gap-4 px-6 py-5 transition hover:bg-neutral-900/40 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_minmax(0,0.7fr)_auto] lg:items-center"
               >
                 <div>
-                  <h3 className="text-base font-semibold tracking-tight text-zinc-100">
-                    {task.title}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    {isTaskClaimed(task) ? (
+                      <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.7)] animate-pulse" />
+                    ) : null}
+                    <h3 className="text-base font-semibold tracking-tight text-zinc-100">
+                      {task.title}
+                    </h3>
+                  </div>
+                  <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                    {isTaskClaimed(task) ? "CLAIMED NODE ACTIVE" : "OPEN FOR CLAIM"}
+                  </p>
                   <p className="mt-1 font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
                     ID: {formatTaskId(task._id)}
                   </p>
@@ -73,14 +76,18 @@ export function TaskQueue({
                 <DifficultyMeter difficulty={task.difficulty} />
 
                 <div>
-                  <p className="font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-neutral-500">
+                    Points Available
+                  </p>
+                  <p className="mt-2 font-mono text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100">
                     {task.points.effective.toLocaleString()}
-                    <span className="ml-2 text-lime-300">DLI</span>
+                    <span className="ml-2 text-lime-300">XP</span>
                   </p>
                 </div>
 
                 <button
                   type="button"
+                  onClick={() => onInspect?.(task)}
                   className="inline-flex items-center justify-center gap-2 rounded-sm border border-neutral-800 bg-black/30 px-4 py-3 font-mono text-xs uppercase tracking-[0.22em] text-lime-300 transition hover:border-lime-400/30 hover:bg-lime-400/10"
                 >
                   Investigate

@@ -48,11 +48,87 @@ router.post(
   verifyToken,
   [
     param("id").isMongoId().withMessage("Invalid task ID"),
+    body("fileUrl").optional().isURL().withMessage("fileUrl must be a valid URL"),
     body("url").optional().isURL().withMessage("Must be a valid URL"),
     body("comment").optional().isString(),
   ],
   validateRequest,
   taskController.submitTask,
+);
+
+// PATCH /api/v1/tasks/:id/submission
+router.patch(
+  "/:id/submission",
+  verifyToken,
+  [
+    param("id").isMongoId().withMessage("Invalid task ID"),
+    body("fileUrl").optional().isURL().withMessage("fileUrl must be a valid URL"),
+    body("url").optional().isURL().withMessage("Must be a valid URL"),
+    body("comment").optional().isString(),
+  ],
+  validateRequest,
+  taskController.updateSubmission,
+);
+
+// PATCH /api/v1/tasks/:id/submission/approve
+router.patch(
+  "/:id/submission/approve",
+  verifyToken,
+  [param("id").isMongoId().withMessage("Invalid task ID")],
+  validateRequest,
+  taskController.approveTaskSubmission,
+);
+
+// PATCH /api/v1/tasks/:id/submission/reject
+router.patch(
+  "/:id/submission/reject",
+  verifyToken,
+  [
+    param("id").isMongoId().withMessage("Invalid task ID"),
+    body("reason").optional().isString(),
+  ],
+  validateRequest,
+  taskController.rejectTaskSubmission,
+);
+
+// POST /api/v1/tasks/:id/transfer/request
+router.post(
+  "/:id/transfer/request",
+  verifyToken,
+  [
+    param("id").isMongoId().withMessage("Invalid task ID"),
+    body("toUserId").optional().isMongoId().withMessage("Invalid user ID"),
+  ],
+  validateRequest,
+  taskController.requestTransfer,
+);
+
+// PATCH /api/v1/tasks/:id/transfer/approve
+router.patch(
+  "/:id/transfer/approve",
+  verifyToken,
+  requireAdmin,
+  [param("id").isMongoId().withMessage("Invalid task ID")],
+  validateRequest,
+  taskController.approveTransfer,
+);
+
+// POST /api/v1/tasks/:id/transfer/accept
+router.post(
+  "/:id/transfer/accept",
+  verifyToken,
+  [param("id").isMongoId().withMessage("Invalid task ID")],
+  validateRequest,
+  taskController.acceptTransfer,
+);
+
+// POST /api/v1/tasks/:id/withdraw
+router.post(
+  "/:id/withdraw",
+  verifyToken,
+  [param("id").isMongoId().withMessage("Invalid task ID")],
+  validateRequest,
+  taskController.withdrawTask,
 );
 
 // PATCH /api/v1/admin/tasks/:id/approve
@@ -61,10 +137,9 @@ router.post(
 router.patch(
   "/:id/approve",
   verifyToken,
-  requireAdmin,
   [param("id").isMongoId().withMessage("Invalid task ID")],
   validateRequest,
-  taskController.approveTask,
+  taskController.approveTaskSubmission,
 );
 
 module.exports = router;

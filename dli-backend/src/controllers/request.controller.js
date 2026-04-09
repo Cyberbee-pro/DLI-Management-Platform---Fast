@@ -4,7 +4,13 @@ const CourseRequest = require("../models/CourseRequest");
 const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
 const { fromDecimal128 } = require("../utils/decimal.utils");
+const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
+
+function generateFallbackAccessCode(courseId) {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `DLI-${courseId.toString().slice(-4).toUpperCase()}-${suffix}`;
+}
 
 /**
  * Snapshots userBalanceAtRequest at submission time rather than approval time
@@ -212,8 +218,9 @@ exports.approveCourseRequest = async (req, res, next) => {
       });
     }
 
+    const standingSnapshot = await getRecentPointsStanding(user._id, { session });
     const { subtractDecimal, addDecimal, isNegative } = require("../utils/decimal.utils");
-    
+
     const remainingBalance = subtractDecimal(user.points.balance, course.pointsRequired);
     if (isNegative(remainingBalance)) {
       await session.abortTransaction();
@@ -230,23 +237,21 @@ exports.approveCourseRequest = async (req, res, next) => {
       isUsed: false,
     }).session(session);
 
-    if (!dliCode) {
-      await session.abortTransaction();
-      return res.status(409).json({
-        success: false,
-        message: "No available DLI codes for this course.",
-        code: "NO_CODES_AVAILABLE",
-      });
+    // Apply updates
+    let redemptionCode = null;
+
+    if (dliCode) {
+      dliCode.isUsed = true;
+      dliCode.usedBy = user._id;
+      dliCode.usedAt = new Date();
+      await dliCode.save({ session });
+      redemptionCode = dliCode.code;
+    } else {
+      redemptionCode = generateFallbackAccessCode(course._id);
     }
 
-    // Apply updates
-    dliCode.isUsed = true;
-    dliCode.usedBy = user._id;
-    dliCode.usedAt = new Date();
-    await dliCode.save({ session });
-
     courseRequest.status = "approved";
-    courseRequest.redemptionCode = dliCode.code;
+    courseRequest.redemptionCode = redemptionCode;
     courseRequest.adminNote = adminNote || null;
     courseRequest.processedBy = { _id: req.user._id, name: req.user.name };
     courseRequest.processedAt = new Date();
@@ -272,7 +277,8 @@ exports.approveCourseRequest = async (req, res, next) => {
       metadata: { 
         courseRequestId: courseRequest._id, 
         courseId: course._id, 
-        pointsDeducted: course.pointsRequired 
+        pointsDeducted: course.pointsRequired,
+        reason: `recent_xp_gain:${standingSnapshot.recentXpGain}`
       },
     });
     await auditLog.save({ session });
@@ -281,7 +287,10 @@ exports.approveCourseRequest = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      data: serializeDocument(courseRequest),
+      data: {
+        ...serializeDocument(courseRequest),
+        standing: standingSnapshot,
+      },
     });
   } catch (error) {
     await session.abortTransaction();

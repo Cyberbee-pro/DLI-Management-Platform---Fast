@@ -22,6 +22,42 @@ export interface ClaimedBySnapshot {
   claimedAt: string | null;
 }
 
+export interface TaskActorReference {
+  _id: string;
+  name?: string | null;
+  role?: "member" | "admin" | null;
+  avatarUrl?: string | null;
+  srmRegNo?: string | null;
+}
+
+export type TaskActor = TaskActorReference | string | null;
+
+export interface TaskSubmissionRecord {
+  fileUrl: string;
+  timestamp: string;
+  comment: string | null;
+}
+
+export interface TaskSubmissionDetails {
+  url: string | null;
+  comment: string | null;
+  submittedAt: string | null;
+}
+
+export interface TaskTransferRequest {
+  from?: TaskActor | null;
+  to?: TaskActor | null;
+  status?: "pending" | "approved" | "rejected" | null;
+  adminApproved?: boolean;
+  requestedAt?: string | null;
+}
+
+export interface TaskCreatorSnapshot {
+  _id: string;
+  name: string;
+  srmRegNo: string;
+}
+
 export interface TaskRecord {
   _id: string;
   title: string;
@@ -34,6 +70,12 @@ export interface TaskRecord {
   tags: string[];
   deadline?: string | null;
   claimedBy?: ClaimedBySnapshot | null;
+  assignedTo?: TaskActor | null;
+  createdBy?: TaskCreatorSnapshot | null;
+  transferRequest?: TaskTransferRequest | null;
+  submissions?: TaskSubmissionRecord[];
+  submissionDetails?: TaskSubmissionDetails | null;
+  repoUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
