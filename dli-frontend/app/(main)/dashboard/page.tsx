@@ -235,19 +235,25 @@ export default function DashboardPage() {
     [handleUnauthorized],
   );
 
-  useEffect(() => {
-    const token = window.localStorage.getItem("token");
+useEffect(() => {
+    // 1. Get the raw value
+    const rawToken = window.localStorage.getItem("token");
     const controller = new AbortController();
 
-    if (!token) {
+    // 2. Guard clause: if null, redirect and stop
+    if (!rawToken) {
       router.push("/login");
       return () => controller.abort();
     }
+
+    // 3. Explicitly tell TS: "This is definitely a string now"
+    const token: string = rawToken;
 
     async function loadDashboard() {
       try {
         setLoading(true);
         setError(null);
+        // Pass the guaranteed string token
         await refreshDashboard(token, controller.signal);
       } catch (dashboardError) {
         if (controller.signal.aborted) {
