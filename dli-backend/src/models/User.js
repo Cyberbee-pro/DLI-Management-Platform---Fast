@@ -112,6 +112,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    linkedinUrl: {
+      type: String,
+      default: null,
+    },
     notificationPrefs: {
       email: {
         type: Boolean,

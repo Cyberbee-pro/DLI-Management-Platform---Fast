@@ -5,7 +5,7 @@ const { serializeDocument } = require("../utils/serialize");
 
 /**
  * Fetches the dashboard properties for the authenticated user, excluding passwords.
- * Aggregates their personal course requests and active tasks, sorted by recent activity.
+ * Aggregates their personal course requests and claimed tasks, sorted by recent activity.
  *
  * @param {object} req - Express request object
  * @param {object} res - Express response object
@@ -26,10 +26,14 @@ exports.getMyDashboard = async (req, res, next) => {
       });
     }
 
-    // Parallel fetch for user's courses and claimed tasks
-    const [courseRequests, activeTasks] = await Promise.all([
+    // The task model stores assignment in claimedBy._id, not assignedTo.
+    // Keep activeTasks as a backward-compatible alias while adding claimedTasks explicitly.
+    const [courseRequests, claimedTasks] = await Promise.all([
       CourseRequest.find({ requestedBy: userId }).sort({ requestedAt: -1 }),
-      Task.find({ claimedBy: userId }).sort({ updatedAt: -1 }),
+      Task.find({
+        "claimedBy._id": userId,
+        status: { $in: ["claimed", "in_review"] },
+      }).sort({ updatedAt: -1 }),
     ]);
 
     res.status(200).json({
@@ -37,7 +41,8 @@ exports.getMyDashboard = async (req, res, next) => {
       data: {
         user: serializeDocument(user),
         courseRequests: courseRequests.map((cr) => serializeDocument(cr)),
-        activeTasks: activeTasks.map((task) => serializeDocument(task)),
+        claimedTasks: claimedTasks.map((task) => serializeDocument(task)),
+        activeTasks: claimedTasks.map((task) => serializeDocument(task)),
       },
     });
   } catch (error) {

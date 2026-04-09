@@ -70,6 +70,7 @@ app.use("/api/v1/courses", require("./routes/course.routes"));
 app.use("/api/v1/dashboard", require("./routes/dashboard.routes"));
 app.use("/api/v1/requests", require("./routes/request.routes"));
 app.use("/api/v1/tasks", require("./routes/task.routes"));
+app.use("/api/v1/users", require("./routes/user.routes"));
 app.use("/api/v1/admin", require("./routes/admin.routes"));
 
 // Catch-all 404 handler to prevent HTML leakage

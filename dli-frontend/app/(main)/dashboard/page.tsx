@@ -50,6 +50,7 @@ interface DashboardPayload {
   user: DashboardUser;
   courseRequests: CourseRequestRecord[];
   activeTasks: TaskRecord[];
+  claimedTasks?: TaskRecord[];
 }
 
 interface DashboardApiResponse {
@@ -208,7 +209,8 @@ export default function DashboardPage() {
     );
   }
 
-  const { user, courseRequests, activeTasks } = dashboard;
+  const { user, courseRequests } = dashboard;
+  const activeTasks = dashboard.claimedTasks ?? dashboard.activeTasks;
   const pointsBalance = parseMetric(user.points.balance);
   const totalEarned = parseMetric(user.points.totalEarned);
   const totalSpent = parseMetric(user.points.totalSpent);
@@ -234,7 +236,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.85fr)_minmax(300px,0.95fr)]">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.85fr)_minmax(300px,0.95fr)]">
         <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
             Current Status
@@ -280,8 +282,8 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4">
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-sm border border-neutral-800 bg-black px-4 py-4">
               <p className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
                 Active Tasks
               </p>
@@ -290,7 +292,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4">
+            <div className="rounded-sm border border-neutral-800 bg-black px-4 py-4">
               <p className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
                 Courses Completed
               </p>
@@ -299,7 +301,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4">
+            <div className="rounded-sm border border-neutral-800 bg-black px-4 py-4">
               <p className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
                 Last Login
               </p>
@@ -375,7 +377,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)]">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)]">
         <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <div>

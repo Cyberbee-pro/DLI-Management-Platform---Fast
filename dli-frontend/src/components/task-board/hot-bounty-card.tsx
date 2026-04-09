@@ -33,7 +33,15 @@ function getTaskAccent(task: TaskRecord) {
   return task.tags[0]?.replace(/[-_]/g, " ") ?? task.category;
 }
 
-export function HotBountyCard({ task }: { task: TaskRecord }) {
+export function HotBountyCard({
+  task,
+  claiming,
+  onClaim,
+}: {
+  task: TaskRecord;
+  claiming?: boolean;
+  onClaim?: ((task: TaskRecord) => void) | undefined;
+}) {
   return (
     <article className="panel-surface relative overflow-hidden rounded-sm border border-neutral-800 p-5">
       <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-lime-400 via-lime-400/60 to-transparent" />
@@ -43,7 +51,7 @@ export function HotBountyCard({ task }: { task: TaskRecord }) {
           <span className="rounded-sm border border-neutral-800 bg-neutral-900 px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-lime-300">
             {getTaskAccent(task)}
           </span>
-          <span className="rounded-sm border border-neutral-800 bg-black/30 px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-zinc-400">
+          <span className="rounded-sm border border-neutral-800 bg-black/30 px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-neutral-400">
             {formatMultiplier(task.points.multiplier)}
           </span>
         </div>
@@ -52,33 +60,33 @@ export function HotBountyCard({ task }: { task: TaskRecord }) {
           <p className="font-mono text-2xl font-semibold tracking-tight text-lime-300">
             {task.points.effective.toLocaleString()}
           </p>
-          <p className="mt-1 font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
+          <p className="mt-1 font-mono text-xs uppercase tracking-[0.24em] text-neutral-500">
             DLI Credits
           </p>
         </div>
       </div>
 
       <div className="mt-5">
-        <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
+        <p className="font-mono text-xs uppercase tracking-[0.24em] text-neutral-500">
           {task.category} / {task.status}
         </p>
         <h3 className="mt-2 max-w-xl text-xl font-semibold uppercase leading-tight tracking-tight text-zinc-50">
           {task.title}
         </h3>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
           {task.description}
         </p>
       </div>
 
       <div className="mt-6 flex flex-col gap-5 border-t border-neutral-800 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <DifficultyMeter difficulty={task.difficulty} />
 
           <div className="space-y-1.5">
-            <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
+            <p className="font-mono text-xs uppercase tracking-[0.24em] text-neutral-500">
               Time Remaining
             </p>
-            <div className="flex items-center gap-2 text-xs text-zinc-300">
+            <div className="flex items-center gap-2 text-xs text-neutral-300">
               <Clock3 className="h-3.5 w-3.5 text-lime-300" />
               <span className="font-mono uppercase tracking-[0.18em]">
                 {formatDeadline(task.deadline)}
@@ -89,9 +97,11 @@ export function HotBountyCard({ task }: { task: TaskRecord }) {
 
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-lime-300"
+          onClick={() => onClaim?.(task)}
+          disabled={claiming || !onClaim}
+          className="inline-flex items-center justify-center gap-2 rounded-sm border border-lime-400/30 bg-black px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-lime-400 transition hover:bg-lime-400/10 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Claim Task
+          {claiming ? "CLAIMING..." : "CLAIM TASK"}
           <ArrowUpRight className="h-3.5 w-3.5" />
         </button>
       </div>
