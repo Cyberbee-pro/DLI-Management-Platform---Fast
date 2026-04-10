@@ -3,6 +3,7 @@ const CourseRequest = require("../models/CourseRequest");
 const Task = require("../models/Task");
 const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
+const { ensureSystemConfig } = require("../utils/system-config");
 
 function withTaskRelations(query) {
   return query
@@ -47,6 +48,7 @@ exports.getMyDashboard = async (req, res, next) => {
       claimedTasks,
       pendingTaskApprovals,
       rawPendingCourseApprovals,
+      systemConfig,
     ] = await Promise.all([
       CourseRequest.find({ requestedBy: userId }).sort({ requestedAt: -1 }),
       withTaskRelations(
@@ -67,6 +69,7 @@ exports.getMyDashboard = async (req, res, next) => {
       user.role === "admin"
         ? CourseRequest.find({ status: "pending" }).sort({ requestedAt: -1 })
         : Promise.resolve([]),
+      user.role === "admin" ? ensureSystemConfig() : Promise.resolve(null),
     ]);
 
     const pendingCourseApprovals = await Promise.all(
@@ -95,6 +98,7 @@ exports.getMyDashboard = async (req, res, next) => {
           pendingTaskApprovals: serializedPendingTaskApprovals,
           pendingCourseApprovals,
         },
+        systemConfig: systemConfig ? serializeDocument(systemConfig) : null,
       },
     });
   } catch (error) {

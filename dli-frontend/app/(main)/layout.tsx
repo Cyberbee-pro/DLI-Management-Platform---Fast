@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { API_BASE_URL } from "@/config/constants";
@@ -8,6 +8,7 @@ import { AppFooter } from "@/components/shell/app-footer";
 import { MobileNavigation, Sidebar } from "@/components/shell/sidebar";
 import { TopHeader } from "@/components/shell/top-header";
 import type { ShellProfileResponse, ShellUser } from "@/components/shell/shell.types";
+import { SHELL_PROFILE_REFRESH_EVENT } from "@/lib/session-events";
 
 function buildProfileEndpoint() {
   const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
@@ -26,17 +27,16 @@ export default function MainLayout({
   const [error, setError] = useState<string | null>(null);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
-  useEffect(() => {
-    const token = window.localStorage.getItem("token");
-    const profileEndpoint = buildProfileEndpoint();
-    const controller = new AbortController();
+  const loadShellProfile = useCallback(
+    async (signal?: AbortSignal) => {
+      const token = window.localStorage.getItem("token");
+      const profileEndpoint = buildProfileEndpoint();
 
-    if (!token) {
-      router.replace("/login");
-      return () => controller.abort();
-    }
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
 
-    async function loadShellProfile() {
       if (!profileEndpoint) {
         setError("NEXT_PUBLIC_API_URL is not configured.");
         setLoading(false);
@@ -50,7 +50,7 @@ export default function MainLayout({
         const response = await fetch(profileEndpoint, {
           method: "GET",
           cache: "no-store",
-          signal: controller.signal,
+          signal,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -73,9 +73,14 @@ export default function MainLayout({
           throw new Error("Profile response is missing the authenticated user.");
         }
 
-        setUser(payload.data.user);
+        const nextUser: ShellUser = {
+          ...payload.data.user,
+          systemPoolBalance: payload.data.systemConfig?.systemPoolBalance ?? null,
+        };
+
+        setUser(nextUser);
       } catch (profileError) {
-        if (controller.signal.aborted) {
+        if (signal?.aborted) {
           return;
         }
 
@@ -85,16 +90,37 @@ export default function MainLayout({
             : "Unable to load the authenticated shell profile.",
         );
       } finally {
-        if (!controller.signal.aborted) {
+        if (!signal?.aborted) {
           setLoading(false);
         }
       }
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadShellProfile(controller.signal);
+    return () => controller.abort();
+  }, [loadShellProfile]);
+
+  useEffect(() => {
+    function handleShellRefresh() {
+      void loadShellProfile();
     }
 
-    void loadShellProfile();
+    window.addEventListener(
+      SHELL_PROFILE_REFRESH_EVENT,
+      handleShellRefresh as EventListener,
+    );
 
-    return () => controller.abort();
-  }, [router]);
+    return () => {
+      window.removeEventListener(
+        SHELL_PROFILE_REFRESH_EVENT,
+        handleShellRefresh as EventListener,
+      );
+    };
+  }, [loadShellProfile]);
 
   useEffect(() => {
     setMobileNavigationOpen(false);

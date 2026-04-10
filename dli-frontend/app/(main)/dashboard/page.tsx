@@ -8,7 +8,9 @@ import {
   CheckCircle2,
   Clock3,
   Loader2,
+  SendHorizontal,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -31,6 +33,7 @@ import {
   resolveActorName,
 } from "@/components/task-board/task-utils";
 import type { TaskRecord, BusyAction } from "@/components/task-board/types";
+import { dispatchShellProfileRefresh } from "@/lib/session-events";
 
 interface DashboardUser {
   _id: string;
@@ -106,6 +109,9 @@ interface DashboardPayload {
   activeTasks: TaskRecord[];
   claimedTasks?: TaskRecord[];
   governance?: DashboardGovernance;
+  systemConfig?: {
+    systemPoolBalance?: number | string | null;
+  } | null;
 }
 
 interface DashboardApiResponse {
@@ -132,9 +138,60 @@ interface ActionNotice {
   message: string;
 }
 
+interface NudgeUser {
+  _id: string;
+  name: string;
+  srmRegNo: string;
+  role: "member" | "admin";
+  rank?: string;
+  avatarUrl?: string | null;
+  linkedinUrl?: string | null;
+  instagramUrl?: string | null;
+  websiteUrl?: string | null;
+  resumeUrl?: string | null;
+  missingProfileVectors: string[];
+}
+
+interface AdminUsersApiResponse {
+  success: boolean;
+  message?: string;
+  code?: string;
+  data?: NudgeUser[];
+}
+
+interface RaiseQueryApiResponse {
+  success: boolean;
+  message?: string;
+  code?: string;
+  data?: {
+    dispatchedCount: number;
+    skippedCount: number;
+  };
+}
+
+const PROFILE_FIELD_OPTIONS = [
+  { key: "avatarUrl", label: "Avatar" },
+  { key: "resumeUrl", label: "Resume" },
+  { key: "linkedinUrl", label: "LinkedIn" },
+  { key: "instagramUrl", label: "Instagram" },
+  { key: "websiteUrl", label: "Website" },
+] as const;
+
+type ProfileFieldKey = (typeof PROFILE_FIELD_OPTIONS)[number]["key"];
+
 function buildDashboardEndpoint() {
   const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
   return sanitizedBaseUrl ? `${sanitizedBaseUrl}/dashboard/me` : "";
+}
+
+function buildAdminUsersEndpoint() {
+  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/users?limit=200` : "";
+}
+
+function buildRaiseQueryEndpoint() {
+  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/raise-query` : "";
 }
 
 function parseMetric(value: string | number | null | undefined) {
@@ -191,6 +248,16 @@ export default function DashboardPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [submissionTaskId, setSubmissionTaskId] = useState<string | null>(null);
   const [approvalTaskId, setApprovalTaskId] = useState<string | null>(null);
+  const [nudgeUsers, setNudgeUsers] = useState<NudgeUser[]>([]);
+  const [nudgeLoading, setNudgeLoading] = useState(false);
+  const [nudgeSubmitting, setNudgeSubmitting] = useState(false);
+  const [nudgeError, setNudgeError] = useState<string | null>(null);
+  const [selectedProfileFields, setSelectedProfileFields] = useState<ProfileFieldKey[]>([
+    "resumeUrl",
+    "linkedinUrl",
+  ]);
+  const [selectedNudgeUserIds, setSelectedNudgeUserIds] = useState<string[]>([]);
+  const [selectAllMembers, setSelectAllMembers] = useState(true);
 
   const handleUnauthorized = useCallback(() => {
     window.localStorage.removeItem("token");
@@ -289,6 +356,73 @@ useEffect(() => {
     return () => window.clearTimeout(timeoutId);
   }, [actionNotice]);
 
+  useEffect(() => {
+    const token = window.localStorage.getItem("token");
+    const usersEndpoint = buildAdminUsersEndpoint();
+    const controller = new AbortController();
+
+    if (!token || dashboard?.user.role !== "admin") {
+      setNudgeUsers([]);
+      return () => controller.abort();
+    }
+
+    async function loadNudgeUsers() {
+      if (!usersEndpoint) {
+        setNudgeError("NEXT_PUBLIC_API_URL is not configured.");
+        return;
+      }
+
+      try {
+        setNudgeLoading(true);
+        setNudgeError(null);
+
+        const response = await fetch(usersEndpoint, {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const payload = (await response.json().catch(() => null)) as AdminUsersApiResponse | null;
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+
+          throw new Error(payload?.message ?? `Failed to load members (${response.status}).`);
+        }
+
+        if (!controller.signal.aborted) {
+          const members = Array.isArray(payload?.data)
+            ? payload.data.filter((user) => user.role === "member")
+            : [];
+          setNudgeUsers(members);
+        }
+      } catch (nudgeUsersError) {
+        if (!controller.signal.aborted) {
+          setNudgeError(
+            nudgeUsersError instanceof Error
+              ? nudgeUsersError.message
+              : "Unable to load members for governance nudges.",
+          );
+          setNudgeUsers([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setNudgeLoading(false);
+        }
+      }
+    }
+
+    void loadNudgeUsers();
+
+    return () => controller.abort();
+  }, [dashboard?.user.role, handleUnauthorized]);
+
   const activeTasks = dashboard ? dashboard.claimedTasks ?? dashboard.activeTasks : [];
   const governance = dashboard?.governance;
   const pendingTaskApprovals = governance?.pendingTaskApprovals ?? [];
@@ -297,6 +431,23 @@ useEffect(() => {
   const submissionTask = activeTasks.find((task) => task._id === submissionTaskId) ?? null;
   const approvalTask =
     pendingTaskApprovals.find((task) => task._id === approvalTaskId) ?? null;
+  const filteredNudgeUsers = nudgeUsers.filter((user) =>
+    selectedProfileFields.length === 0
+      ? true
+      : selectedProfileFields.some((field) => user.missingProfileVectors.includes(field)),
+  );
+
+  useEffect(() => {
+    if (selectAllMembers) {
+      return;
+    }
+
+    setSelectedNudgeUserIds((currentIds) =>
+      currentIds.filter((userId) =>
+        filteredNudgeUsers.some((user) => user._id === userId),
+      ),
+    );
+  }, [filteredNudgeUsers, selectAllMembers]);
 
   async function runTaskAction({
     task,
@@ -333,6 +484,10 @@ useEffect(() => {
 
       if (closeApproval) {
         setApprovalTaskId(null);
+      }
+
+      if (type === "approve-task") {
+        dispatchShellProfileRefresh();
       }
 
       setActionNotice({
@@ -440,6 +595,7 @@ useEffect(() => {
         onUnauthorized: handleUnauthorized,
       });
       await refreshDashboard(token);
+      dispatchShellProfileRefresh();
       setActionNotice({
         tone: "success",
         message: "ACCESS_APPROVED",
@@ -491,6 +647,116 @@ useEffect(() => {
               comment: draft.comment.trim(),
             }),
     });
+  }
+
+  function toggleProfileField(field: ProfileFieldKey) {
+    setSelectedProfileFields((currentFields) =>
+      currentFields.includes(field)
+        ? currentFields.filter((currentField) => currentField !== field)
+        : [...currentFields, field],
+    );
+  }
+
+  function toggleNudgeUser(userId: string) {
+    setSelectedNudgeUserIds((currentUserIds) =>
+      currentUserIds.includes(userId)
+        ? currentUserIds.filter((currentUserId) => currentUserId !== userId)
+        : [...currentUserIds, userId],
+    );
+  }
+
+  async function handleRaiseQuery() {
+    const token = window.localStorage.getItem("token");
+    const endpoint = buildRaiseQueryEndpoint();
+
+    if (!token) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!endpoint) {
+      setNudgeError("NEXT_PUBLIC_API_URL is not configured.");
+      return;
+    }
+
+    if (selectedProfileFields.length === 0) {
+      setNudgeError("Select at least one missing profile vector.");
+      return;
+    }
+
+    if (!selectAllMembers && selectedNudgeUserIds.length === 0) {
+      setNudgeError("Select at least one member or enable Select All Members.");
+      return;
+    }
+
+    try {
+      setNudgeSubmitting(true);
+      setNudgeError(null);
+      setActionNotice(null);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          profileFields: selectedProfileFields,
+          userIds: selectAllMembers ? [] : selectedNudgeUserIds,
+          selectAllMembers,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as RaiseQueryApiResponse | null;
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        throw new Error(payload?.message ?? `Network nudge failed (${response.status}).`);
+      }
+
+      const usersEndpoint = buildAdminUsersEndpoint();
+
+      if (usersEndpoint) {
+        const usersResponse = await fetch(usersEndpoint, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const usersPayload =
+          (await usersResponse.json().catch(() => null)) as AdminUsersApiResponse | null;
+
+        if (usersResponse.ok) {
+          setNudgeUsers(
+            Array.isArray(usersPayload?.data)
+              ? usersPayload.data.filter((user) => user.role === "member")
+              : [],
+          );
+        }
+      }
+
+      if (!selectAllMembers) {
+        setSelectedNudgeUserIds([]);
+      }
+
+      setActionNotice({
+        tone: "success",
+        message: "NETWORK_NUDGE_DISPATCHED",
+      });
+    } catch (raiseQueryError) {
+      setNudgeError(
+        raiseQueryError instanceof Error
+          ? raiseQueryError.message
+          : "Unable to dispatch the network nudge.",
+      );
+    } finally {
+      setNudgeSubmitting(false);
+    }
   }
 
   if (loading) {
@@ -551,10 +817,14 @@ useEffect(() => {
   const submissionBusy = Boolean(
     submissionTask && busyAction?.taskId === submissionTask._id && busyAction.type === "submit",
   );
-  const approvalBusyAction =
-    approvalTask && busyAction?.taskId === approvalTask._id 
-      ? (busyAction.type as any) // 'any' is the emergency override to get the build through
+  const approvalBusyType =
+    approvalTask &&
+    busyAction?.taskId === approvalTask._id &&
+    (busyAction.type === "approve-task" || busyAction.type === "reject-task")
+      ? busyAction.type
       : undefined;
+  const approvalBusyAction =
+    approvalBusyType;
 
   return (
     <>
@@ -880,6 +1150,134 @@ useEffect(() => {
                   </div>
                 </article>
               ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {user.role === "admin" ? (
+          <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
+            <div className="flex flex-col gap-3 border-b border-neutral-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
+                  NETWORK_NUDGE
+                </p>
+                <h2 className="mt-2 text-lg font-semibold text-zinc-50">
+                  Profile Requirements Dispatch
+                </h2>
+              </div>
+              <div className="rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-xs uppercase tracking-[0.18em] text-neutral-400">
+                {filteredNudgeUsers.length.toString().padStart(2, "0")} eligible
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <article className="rounded-sm border border-neutral-800 bg-black/40 p-4">
+                <div className="flex items-center gap-3">
+                  <Users className="h-4 w-4 text-lime-300" />
+                  <h3 className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
+                    Missing Vectors
+                  </h3>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {PROFILE_FIELD_OPTIONS.map((option) => (
+                    <label
+                      key={option.key}
+                      className="flex items-center justify-between rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-3 text-sm text-zinc-200"
+                    >
+                      <span>{option.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedProfileFields.includes(option.key)}
+                        onChange={() => toggleProfileField(option.key)}
+                        className="h-4 w-4 rounded border-neutral-700 bg-black text-lime-400"
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <label className="mt-5 flex items-center justify-between rounded-sm border border-lime-400/20 bg-lime-400/10 px-3 py-3 text-sm text-lime-200">
+                  <span>Select All Members</span>
+                  <input
+                    type="checkbox"
+                    checked={selectAllMembers}
+                    onChange={() => setSelectAllMembers((current) => !current)}
+                    className="h-4 w-4 rounded border-lime-400/40 bg-black text-lime-400"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => void handleRaiseQuery()}
+                  disabled={nudgeSubmitting || nudgeLoading}
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {nudgeSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+                  {nudgeSubmitting ? "Dispatching..." : "Dispatch Network Nudge"}
+                </button>
+
+                {nudgeError ? (
+                  <p className="mt-4 text-sm text-rose-300">{nudgeError}</p>
+                ) : null}
+              </article>
+
+              <article className="rounded-sm border border-neutral-800 bg-black/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
+                    Target Members
+                  </h3>
+                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">
+                    Pool {formatMetric(dashboard.systemConfig?.systemPoolBalance)}
+                  </span>
+                </div>
+
+                <div className="mt-4 max-h-[26rem] space-y-3 overflow-y-auto pr-1">
+                  {nudgeLoading ? (
+                    <div className="flex items-center gap-3 rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-sm text-neutral-400">
+                      <Loader2 className="h-4 w-4 animate-spin text-lime-400" />
+                      Loading member vectors...
+                    </div>
+                  ) : filteredNudgeUsers.length > 0 ? (
+                    filteredNudgeUsers.map((member) => (
+                      <label
+                        key={member._id}
+                        className="flex items-start justify-between gap-4 rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-sm text-zinc-200"
+                      >
+                        <div>
+                          <p className="font-medium text-zinc-100">{member.name}</p>
+                          <p className="mt-1 font-mono text-xs uppercase tracking-[0.16em] text-neutral-500">
+                            {member.srmRegNo}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {member.missingProfileVectors
+                              .filter((item) => selectedProfileFields.includes(item as ProfileFieldKey))
+                              .map((item) => (
+                                <span
+                                  key={item}
+                                  className="rounded-sm border border-amber-400/20 bg-amber-400/10 px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-amber-200"
+                                >
+                                  {PROFILE_FIELD_OPTIONS.find((option) => option.key === item)?.label ?? item}
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+
+                        <input
+                          type="checkbox"
+                          checked={selectAllMembers || selectedNudgeUserIds.includes(member._id)}
+                          disabled={selectAllMembers}
+                          onChange={() => toggleNudgeUser(member._id)}
+                          className="mt-1 h-4 w-4 rounded border-neutral-700 bg-black text-lime-400"
+                        />
+                      </label>
+                    ))
+                  ) : (
+                    <p className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-sm text-neutral-500">
+                      No members are currently missing the selected profile vectors.
+                    </p>
+                  )}
+                </div>
+              </article>
             </div>
           </section>
         ) : null}

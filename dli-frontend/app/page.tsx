@@ -68,7 +68,7 @@ export default function BrilliantLanding() {
         {/* Sticky Headline */}
         <div className="sticky top-32 space-y-8">
           <p className="text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
-            // Operational Excellence
+            {"// Operational Excellence"}
           </p>
           <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9]">
             Deploying the <br/> next class of <br/> <span className="italic font-light">AI Engineers.</span>
