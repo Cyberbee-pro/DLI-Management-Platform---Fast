@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  BookOpen,
   CheckCircle2,
   Clock3,
   Loader2,
@@ -788,11 +787,6 @@ useEffect(() => {
   const pointsBalance = parseMetric(user.points.balance);
   const totalEarned = parseMetric(user.points.totalEarned);
   const totalSpent = parseMetric(user.points.totalSpent);
-  const latestCourseRequest = courseRequests[0] ?? null;
-  const activeCourseTitle =
-    user.activeCourse?.title ?? latestCourseRequest?.course.title ?? "No Active Course";
-  const activeCourseCost =
-    user.activeCourse?.pointsRequired ?? latestCourseRequest?.course.pointsRequired ?? "0";
   const activityDenominator = Math.max(activeTasks.length + courseRequests.length, 1);
   const operationalLoad = Math.min(
     100,
@@ -1325,55 +1319,66 @@ useEffect(() => {
               <span className="rounded-sm border border-lime-400/20 bg-lime-400/10 px-2 py-1 font-mono text-xs uppercase tracking-[0.18em] text-lime-300">
                 Active Module
               </span>
-              <BookOpen className="h-4 w-4 text-zinc-400" />
+              <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
+                {courseRequests.length.toString().padStart(2, "0")} requests
+              </span>
             </div>
 
             <h2 className="mt-5 text-lg font-semibold leading-tight text-zinc-50">
-              {activeCourseTitle}
+              Course Requests
             </h2>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              {user.activeCourse?.title
-                ? "This module is currently assigned to your node."
-                : "No course is active yet. Your latest request status is shown below."}
+              Track all your module requests and their approval status.
             </p>
 
-            <div className="mt-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-                <span className="text-sm text-zinc-500">Latest Status</span>
-                <span
-                  className={[
-                    "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.18em]",
-                    latestCourseRequest
-                      ? statusClasses(latestCourseRequest.status)
-                      : "border-neutral-800 bg-neutral-950 text-zinc-500",
-                  ].join(" ")}
-                >
-                  {latestCourseRequest ? formatStatus(latestCourseRequest.status) : "IDLE"}
-                </span>
-              </div>
+            <div className="custom-scrollbar mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-2">
+              {courseRequests.length > 0 ? (
+                courseRequests.map((request) => (
+                  <div
+                    key={request._id}
+                    className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-zinc-100">
+                          {request.course.title}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          <span
+                            className={[
+                              "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.16em]",
+                              statusClasses(request.status),
+                            ].join(" ")}
+                          >
+                            {formatStatus(request.status)}
+                          </span>
+                          <span className="font-mono text-xs text-zinc-500">
+                            {formatTimestamp(request.requestedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-              <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-                <span className="text-sm text-zinc-500">Points Required</span>
-                <span className="font-mono text-sm text-zinc-100">
-                  {formatMetric(activeCourseCost)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-500">Requested</span>
-                <span className="font-mono text-sm text-zinc-100">
-                  {formatTimestamp(latestCourseRequest?.requestedAt)}
-                </span>
-              </div>
+                    {request.redemptionCode || request.adminNote ? (
+                      <div className="mt-3 border-t border-neutral-800 pt-3">
+                        <p className="text-xs text-zinc-500">
+                          {request.redemptionCode ? "Redemption Code" : "Admin Note"}
+                        </p>
+                        <p className="mt-1 font-mono text-sm text-lime-300">
+                          {request.redemptionCode ?? request.adminNote}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-center">
+                  <p className="text-sm text-zinc-500">
+                    No course requests yet. Start in the catalogue!
+                  </p>
+                </div>
+              )}
             </div>
-
-            <button
-              type="button"
-              disabled
-              className="mt-6 w-full rounded-sm border border-neutral-800 bg-neutral-800/80 px-4 py-3 text-sm font-medium text-zinc-100"
-            >
-              {user.activeCourse?.title ? "MODULE ACTIVE" : "AWAITING ASSIGNMENT"}
-            </button>
           </article>
         </section>
 

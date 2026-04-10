@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link as LinkIcon, Link2, Loader2, User } from "lucide-react";
+import { Link as LinkIcon, Link2, Loader2, Search, User, X } from "lucide-react";
 
 import { API_BASE_URL } from "@/config/constants";
 
 interface RegistryUser {
+  _id?: string;
   name: string;
+  srmRegNo?: string;
   role: string;
   githubUsername?: string | null;
   linkedinUrl?: string | null;
@@ -23,9 +25,14 @@ interface RegistryApiResponse {
   data?: RegistryUser[];
 }
 
-function buildRegistryEndpoint() {
+function buildRegistryEndpoint(search?: string) {
   const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
-  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/users` : "";
+  if (!sanitizedBaseUrl) return "";
+  const url = `${sanitizedBaseUrl}/users`;
+  if (search) {
+    return `${url}?search=${encodeURIComponent(search)}`;
+  }
+  return url;
 }
 
 function parsePointsBalance(value?: number | string | null) {
@@ -78,8 +85,11 @@ function resolveLinkedinUrl(url?: string | null) {
 export default function RegistryPage() {
   const [members, setMembers] = useState<RegistryUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Load initial members
   useEffect(() => {
     const controller = new AbortController();
     const registryEndpoint = buildRegistryEndpoint();
@@ -136,6 +146,66 @@ export default function RegistryPage() {
     return () => controller.abort();
   }, []);
 
+  // Handle search
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      // Reset to load all members again
+      const controller = new AbortController();
+      const registryEndpoint = buildRegistryEndpoint();
+
+      try {
+        setSearching(true);
+        const response = await fetch(registryEndpoint, {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+          },
+          signal: controller.signal,
+        });
+
+        const payload = (await response.json().catch(() => null)) as RegistryApiResponse | null;
+
+        if (response.ok && !controller.signal.aborted) {
+          setMembers(Array.isArray(payload?.data) ? payload.data : []);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setSearching(false);
+        }
+      }
+      return;
+    }
+
+    // Search
+    const controller = new AbortController();
+    const endpoint = buildRegistryEndpoint(query);
+
+    try {
+      setSearching(true);
+      const response = await fetch(endpoint, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json().catch(() => null)) as RegistryApiResponse | null;
+
+      if (response.ok && !controller.signal.aborted) {
+        setMembers(Array.isArray(payload?.data) ? payload.data : []);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setSearching(false);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 bg-black pb-4 font-sans">
       <section className="rounded-sm border border-neutral-800 bg-black px-5 py-6 sm:px-6">
@@ -161,6 +231,29 @@ export default function RegistryPage() {
           </div>
         </div>
       </section>
+
+      {/* Search Bar */}
+      <div className="rounded-sm border border-neutral-800 bg-black px-5 py-4">
+        <div className="flex items-center gap-3 bg-neutral-950/50 rounded-sm border border-neutral-800 px-4 py-2">
+          <Search className="h-4 w-4 text-neutral-500" />
+          <input
+            type="text"
+            placeholder="Search by name or SRM number..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-zinc-100 placeholder-neutral-500 outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => handleSearch("")}
+              className="text-neutral-500 hover:text-neutral-300"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          {searching && <Loader2 className="h-4 w-4 animate-spin text-lime-400" />}
+        </div>
+      </div>
 
       {error ? (
         <section className="rounded-sm border border-rose-950 bg-rose-950/20 px-4 py-4 text-sm text-rose-200">
@@ -226,7 +319,7 @@ export default function RegistryPage() {
                               {member.name}
                             </p>
                             <p className="mt-1 text-xs uppercase tracking-[0.18em] text-neutral-500">
-                              {pointsBalance.toLocaleString()} XP
+                              {member.srmRegNo ? `SRM: ${member.srmRegNo}` : "--"}
                             </p>
                           </div>
                         </div>

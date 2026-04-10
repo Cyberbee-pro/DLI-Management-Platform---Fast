@@ -8,10 +8,88 @@ const AuditLog = require("../models/AuditLog");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
 const { ensureSystemConfig } = require("../utils/system-config");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { toDecimal128 } = require("../utils/decimal.utils");
 const {
   PROFILE_VECTOR_CONFIG,
   getMissingProfileVectors,
 } = require("../utils/profile");
+
+/**
+ * Admin creates a new user account manually.
+ * Only accessible to admin users. Generates a temporary password for the user.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const createUser = async (req, res) => {
+  try {
+    const { name, email, srmRegNo } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ email }, { srmRegNo }],
+    });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email or Registration Number already exists",
+        code: "USER_EXISTS",
+      });
+    }
+
+    // Generate a temporary password
+    const temporaryPassword = Math.random().toString(36).slice(-12);
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+    const user = new User({
+      name,
+      email,
+      srmRegNo,
+      passwordHash,
+      role: "member",
+      points: {
+        balance: toDecimal128(0),
+        totalEarned: toDecimal128(0),
+        totalSpent: toDecimal128(0),
+        negativeAccrued: toDecimal128(0),
+      },
+    });
+
+    await user.save();
+
+    await createAuditLog({
+      action: "USER_CREATED",
+      tag: "ADMIN",
+      actor: req.user,
+      target: user._id,
+      message: `Admin ${req.user.name} created user account for ${user.name}.`,
+      metadata: {
+        email: user.email,
+        srmRegNo: user.srmRegNo,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        user: serializeDocument(user),
+        temporaryCredentials: {
+          email,
+          password: temporaryPassword,
+          note: "This is a temporary password. User should change it on first login.",
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create user",
+      code: "INTERNAL_ERROR",
+    });
+  }
+};
 
 /**
  * Retrieves course requests filtered by status.
@@ -281,6 +359,7 @@ const bulkUploadCodes = async (req, res) => {
 };
 
 module.exports = {
+  createUser,
   getPendingRequests,
   getUsersLeaderboard,
   getAuditFeed,

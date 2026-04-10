@@ -22,6 +22,20 @@ router.get(
   adminController.getUsersLeaderboard
 );
 
+// POST /api/v1/admin/users
+router.post(
+  "/users",
+  verifyToken,
+  requireAdmin,
+  [
+    body("name", "Name is required").notEmpty().isString(),
+    body("email", "Invalid email format").isEmail(),
+    body("srmRegNo", "Registration number is required").notEmpty().isString(),
+  ],
+  validateRequest,
+  adminController.createUser
+);
+
 // GET /api/v1/admin/audit-feed
 router.get(
   "/audit-feed",

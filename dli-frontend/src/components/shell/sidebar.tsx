@@ -167,6 +167,12 @@ export function Sidebar({
               <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-xs text-lime-300">
                 {loading ? (
                   "..."
+                ) : user?.avatarData ? (
+                  <img
+                    src={user.avatarData}
+                    alt={`${user.name} avatar`}
+                    className="h-full w-full object-cover"
+                  />
                 ) : user?.avatarUrl ? (
                   <img
                     src={user.avatarUrl}
@@ -203,15 +209,6 @@ export function Sidebar({
                 </p>
               </div>
             </section>
-          )}
-
-          {user?.role === "admin" && (
-            <button
-              type="button"
-              className="mt-6 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-neutral-950 transition hover:bg-lime-300"
-            >
-              Deploy New Task
-            </button>
           )}
 
           <div className="mt-auto border-t border-[color:var(--line)] pt-5">

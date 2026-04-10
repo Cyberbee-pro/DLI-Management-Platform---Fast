@@ -88,8 +88,16 @@ exports.updateMe = async (req, res, next) => {
     const avatarFile = Array.isArray(files.avatar) ? files.avatar[0] : null;
     const resumeFile = Array.isArray(files.resume) ? files.resume[0] : null;
 
+    // Handle avatar file - convert to Base64 Data URI if buffer exists
     if (avatarFile) {
-      user.avatarUrl = buildUploadUrl(req, avatarFile);
+      if (avatarFile.buffer) {
+        // Memory storage - convert to Base64 Data URI
+        const base64 = avatarFile.buffer.toString("base64");
+        user.avatarData = `data:${avatarFile.mimetype};base64,${base64}`;
+      } else {
+        // Disk storage - use URL
+        user.avatarUrl = buildUploadUrl(req, avatarFile);
+      }
     }
 
     if (resumeFile) {
