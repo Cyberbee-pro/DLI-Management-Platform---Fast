@@ -38,6 +38,9 @@ const storage = multer.diskStorage({
   },
 });
 
+// Memory storage for avatar uploads (Base64 conversion)
+const avatarMemoryStorage = multer.memoryStorage();
+
 function fileFilter(_req, file, callback) {
   if (file.fieldname === "avatar" && avatarMimeTypes.has(file.mimetype)) {
     callback(null, true);
@@ -66,7 +69,17 @@ const profileUpload = multer({
   },
 });
 
+// Avatar-only multer for memory storage (Base64)
+const avatarUploadMemory = multer({
+  storage: avatarMemoryStorage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB for avatar
+  },
+});
+
 module.exports = {
   profileUpload,
+  avatarUploadMemory,
   uploadDir,
 };

@@ -4,7 +4,7 @@ const router = express.Router();
 const User = require("../models/User");
 const userController = require("../controllers/user.controller");
 const { verifyToken, requireMember } = require("../middleware/auth.middleware");
-const { profileUpload } = require("../middleware/upload.middleware");
+const { avatarUploadMemory } = require("../middleware/upload.middleware");
 const { serializeDocument } = require("../utils/serialize");
 
 // GET /api/v1/users/me
@@ -15,7 +15,7 @@ router.patch(
   "/me",
   verifyToken,
   requireMember,
-  profileUpload.fields([
+  avatarUploadMemory.fields([
     { name: "avatar", maxCount: 1 },
     { name: "resume", maxCount: 1 },
   ]),
@@ -23,11 +23,24 @@ router.patch(
 );
 
 // GET /api/v1/users
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
+    const search = req.query.search ? req.query.search.trim() : "";
+
+    let filter = {};
+    if (search) {
+      // Search by name or srmRegNo (case-insensitive)
+      filter = {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { srmRegNo: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
     const users = await User.find(
-      {},
-      "name role githubUsername linkedinUrl instagramUrl websiteUrl resumeUrl points.balance avatarUrl",
+      filter,
+      "name role githubUsername linkedinUrl instagramUrl websiteUrl resumeUrl points.balance avatarUrl srmRegNo",
     )
       .sort({ "points.balance": -1 })
       .lean();

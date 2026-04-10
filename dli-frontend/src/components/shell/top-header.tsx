@@ -50,10 +50,22 @@ export function TopHeader({
         <Link
           href="/account"
           aria-label="Open account settings"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
+          className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
         >
           {loading ? (
             <span className="h-3.5 w-3.5 animate-pulse rounded-full bg-lime-300/70" />
+          ) : user?.avatarData ? (
+            <img
+              src={user.avatarData}
+              alt={`${user.name} avatar`}
+              className="h-full w-full object-cover"
+            />
+          ) : user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={`${user.name} avatar`}
+              className="h-full w-full object-cover"
+            />
           ) : (
             getUserInitials(user?.name)
           )}

@@ -59,13 +59,29 @@ exports.createRequest = async (req, res, next) => {
       });
     }
 
-    // Return a 400 error if the user already has a pending CourseRequest document
-    const existingRequest = await CourseRequest.findOne({
+    // Check if user already has a request for this specific course (pending or approved)
+    // This prevents duplicate redemptions
+    const existingCourseRequest = await CourseRequest.findOne({
+      "requestedBy._id": userId,
+      "course._id": courseId,
+      status: { $in: ["pending", "approved"] },
+    });
+
+    if (existingCourseRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already requested access to this course",
+        code: "DUPLICATE_REQUEST",
+      });
+    }
+
+    // Return a 400 error if the user already has a pending CourseRequest document (any course)
+    const existingPendingRequest = await CourseRequest.findOne({
       "requestedBy._id": userId,
       status: "pending",
     });
 
-    if (existingRequest) {
+    if (existingPendingRequest) {
       return res.status(400).json({
         success: false,
         message: "You already have a pending course request",

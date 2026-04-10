@@ -1,0 +1,68 @@
+[
+  {
+    "title": "Fundamentals of Deep Learning",
+    "description": "Learn how to train deep learning models for image classification and object detection from scratch. You will explore various network architectures and optimization techniques.",
+    "pointsRequired": "500",
+    "imageUrl": "/uploads/courses/dl-fundamentals.jpg",
+    "category": "Deep Learning",
+    "level": "Beginner",
+    "provider": "NVIDIA",
+    "inventoryCount": 150,
+    "isActive": true
+  },
+  {
+    "title": "Getting Started with AI on Jetson Nano",
+    "description": "An introduction to computer vision and AI using the Jetson Nano. Covers classification, regression, and data collection directly on the edge.",
+    "pointsRequired": "300",
+    "imageUrl": "/uploads/courses/jetson-nano.jpg",
+    "category": "Edge AI",
+    "level": "Beginner",
+    "provider": "NVIDIA",
+    "inventoryCount": 200,
+    "isActive": true
+  },
+  {
+    "title": "Building Transformer-Based NLP Applications",
+    "description": "Master the architecture of Transformer models. Learn to build applications using BERT and other high-performance models for sentiment analysis and translation.",
+    "pointsRequired": "1200",
+    "imageUrl": "/uploads/courses/nlp-transformers.jpg",
+    "category": "NLP",
+    "level": "Advanced",
+    "provider": "NVIDIA",
+    "inventoryCount": 45,
+    "isActive": true
+  },
+  {
+    "title": "Accelerating End-to-End Data Science Workflows",
+    "description": "Learn to use RAPIDS to significantly speed up your data science pipelines, from data loading to model training using multi-GPU systems.",
+    "pointsRequired": "800",
+    "imageUrl": "/uploads/courses/rapids-ds.jpg",
+    "category": "Data Science",
+    "level": "Intermediate",
+    "provider": "NVIDIA",
+    "inventoryCount": 75,
+    "isActive": true
+  },
+  {
+    "title": "Generative AI with Diffusion Models",
+    "description": "Deep dive into the math and architecture behind Stable Diffusion. Learn to build and fine-tune latent diffusion models for creative AI applications.",
+    "pointsRequired": "2500",
+    "imageUrl": "/uploads/courses/gen-ai.jpg",
+    "category": "Generative AI",
+    "level": "Advanced",
+    "provider": "NVIDIA",
+    "inventoryCount": 30,
+    "isActive": true
+  },
+  {
+    "title": "Application Deployment with NVIDIA Triton",
+    "description": "Focus on the DevOps side of AI. Deploy AI models at scale using the Triton Inference Server for multi-framework and high-throughput production.",
+    "pointsRequired": "1000",
+    "imageUrl": "/uploads/courses/triton-deploy.jpg",
+    "category": "DevOps",
+    "level": "Intermediate",
+    "provider": "NVIDIA",
+    "inventoryCount": 60,
+    "isActive": true
+  }
+]
