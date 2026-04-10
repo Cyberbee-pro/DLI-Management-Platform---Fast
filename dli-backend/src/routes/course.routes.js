@@ -18,6 +18,7 @@ router.post(
     body("description").notEmpty().withMessage("Description is required").isString(),
     body("pointsRequired").isNumeric().withMessage("pointsRequired must be numeric"),
     body("imageUrl").isURL().withMessage("imageUrl must be a valid URL"),
+    body("courseUrl").isURL().withMessage("courseUrl must be a valid URL"),
     body("category").notEmpty().withMessage("Category is required").isString(),
     body("level")
       .notEmpty()
@@ -41,6 +42,7 @@ router.patch(
     body("description").optional().isString(),
     body("pointsRequired").optional().isNumeric(),
     body("imageUrl").optional().isURL(),
+    body("courseUrl").optional().isURL(),
     body("category").optional().isString(),
     body("level")
       .optional()

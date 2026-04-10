@@ -8,6 +8,15 @@ const { validateRequest } = require("../middleware/validate");
 // GET /api/v1/tasks
 router.get("/", verifyToken, taskController.getTasks);
 
+// GET /api/v1/tasks/:id
+router.get(
+  "/:id",
+  verifyToken,
+  [param("id").isMongoId().withMessage("Invalid task ID")],
+  validateRequest,
+  taskController.getTask,
+);
+
 // POST /api/v1/tasks
 router.post(
   "/",
@@ -22,7 +31,7 @@ router.post(
     body("category")
       .notEmpty()
       .withMessage("Category is required")
-      .isIn(["Frontend", "ML", "DevOps", "Content"]),
+      .isIn(["Frontend", "Backend", "DataBase", "AI/ML", "Research", "DevOps", "Content"]),
     body("points.base").isNumeric().withMessage("points.base must be numeric"),
     body("difficulty")
       .notEmpty()

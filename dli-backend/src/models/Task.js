@@ -18,7 +18,7 @@ const taskSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Frontend", "ML", "DevOps", "Content"],
+      enum: ["Frontend", "Backend","DataBase","AI/ML","Research", "DevOps", "Content"],
       required: true,
     },
     points: {

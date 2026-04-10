@@ -40,14 +40,24 @@ router.get("/", async (req, res) => {
 
     const users = await User.find(
       filter,
-      "name role githubUsername linkedinUrl instagramUrl websiteUrl resumeUrl points.balance avatarUrl srmRegNo",
+      "name role githubUsername linkedinUrl instagramUrl websiteUrl resumeUrl resumeData points.balance avatarUrl srmRegNo",
     )
       .sort({ "points.balance": -1 })
       .lean();
 
     return res.status(200).json({
       success: true,
-      data: serializeDocument(users),
+      data: serializeDocument(users).map((user) => ({
+        ...user,
+        socials: {
+          github: user.githubUsername
+            ? `https://github.com/${String(user.githubUsername).replace(/^@/, "")}`
+            : null,
+          linkedin: user.linkedinUrl ?? null,
+          instagram: user.instagramUrl ?? null,
+          website: user.websiteUrl ?? null,
+        },
+      })),
     });
   } catch (error) {
     return res.status(500).json({

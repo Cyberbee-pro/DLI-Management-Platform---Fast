@@ -20,7 +20,15 @@ export const RANKS = [
   "Legendary",
 ] as const;
 
-export const TASK_CATEGORIES = ["Frontend", "ML", "DevOps", "Content"] as const;
+export const TASK_CATEGORIES = [
+  "Frontend",
+  "Backend",
+  "DataBase",
+  "AI/ML",
+  "Research",
+  "DevOps",
+  "Content",
+] as const;
 
 export const DIFFICULTIES = [
   "Beginner",

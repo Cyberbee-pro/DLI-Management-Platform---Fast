@@ -23,6 +23,10 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    courseUrl: {
+      type: String,
+      required: true,
+    },
     category: {
       type: String,
       required: true,

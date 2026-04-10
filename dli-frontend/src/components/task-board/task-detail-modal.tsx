@@ -71,7 +71,13 @@ export function TaskDetailModal({
     safeTask.transferRequest?.status === "approved" && safeTask.transferRequest.adminApproved;
   const transferTargetName = resolveActorName(safeTask.transferRequest?.to ?? null, "TARGET_NODE");
   const isClaimed = isTaskClaimed(safeTask);
-  const hasSubmission = Boolean(safeTask.submissionDetails?.url);
+  const latestSubmission = safeTask.submissions?.at(-1) ?? null;
+  const evidenceUrl = safeTask.submissionDetails?.url ?? latestSubmission?.fileUrl ?? null;
+  const evidenceComment =
+    safeTask.submissionDetails?.comment ?? latestSubmission?.comment ?? null;
+  const evidenceTimestamp =
+    safeTask.submissionDetails?.submittedAt ?? latestSubmission?.timestamp ?? null;
+  const hasSubmission = Boolean(evidenceUrl);
   const submitDisabled = safeTask.status === "completed";
   const withdrawDisabled = safeTask.status !== "claimed";
 
@@ -135,9 +141,9 @@ export function TaskDetailModal({
             {busyAction === "withdraw" ? "WITHDRAWING..." : "WITHDRAW"}
           </button>
 
-          {safeTask.submissionDetails?.url ? (
+          {evidenceUrl ? (
             <a
-              href={safeTask.submissionDetails.url}
+              href={evidenceUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-sm border border-neutral-800 bg-black px-4 py-3 font-mono text-xs uppercase tracking-[0.2em] text-lime-400 transition hover:border-lime-400/30 hover:bg-lime-400/10"
@@ -252,6 +258,30 @@ export function TaskDetailModal({
                 </a>
               ) : null}
             </div>
+
+            {hasSubmission ? (
+              <div className="rounded-sm border border-lime-400/20 bg-lime-400/5 p-4">
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-lime-300">
+                  EVIDENCE_VAULT
+                </p>
+                <a
+                  href={evidenceUrl!}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block break-all text-sm text-lime-300 underline decoration-lime-400/30 underline-offset-4"
+                >
+                  {evidenceUrl}
+                </a>
+                {evidenceComment ? (
+                  <p className="mt-3 text-sm leading-6 text-neutral-300">{evidenceComment}</p>
+                ) : null}
+                {evidenceTimestamp ? (
+                  <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+                    Logged {new Date(evidenceTimestamp).toLocaleString("en-IN")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {transferPending ? (
               <div className="rounded-sm border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">

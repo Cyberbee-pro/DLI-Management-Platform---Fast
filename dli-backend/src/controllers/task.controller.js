@@ -16,6 +16,22 @@ function withTaskRelations(query) {
     .populate("transferRequest.to", "name role avatarUrl");
 }
 
+function serializeTaskForClient(task) {
+  const serializedTask = serializeDocument(task);
+
+  return {
+    ...serializedTask,
+    submissions: Array.isArray(serializedTask.submissions)
+      ? serializedTask.submissions
+      : [],
+    submissionDetails: serializedTask.submissionDetails ?? {
+      url: null,
+      comment: null,
+      submittedAt: null,
+    },
+  };
+}
+
 function getAssignedUserId(task) {
   if (task.assignedTo) {
     return task.assignedTo.toString();
@@ -67,7 +83,7 @@ function clearAssignment(task) {
 
 async function loadSerializedTask(taskId) {
   const task = await withTaskRelations(Task.findById(taskId));
-  return task ? serializeDocument(task) : null;
+  return task ? serializeTaskForClient(task) : null;
 }
 
 function recordSubmission(task, { fileUrl, comment }) {
@@ -238,7 +254,28 @@ exports.getTasks = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      data: serializeDocument(tasks),
+      data: tasks.map((task) => serializeTaskForClient(task)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getTask = async (req, res, next) => {
+  try {
+    const task = await withTaskRelations(Task.findById(req.params.id));
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+        code: "TASK_NOT_FOUND",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: serializeTaskForClient(task),
     });
   } catch (error) {
     next(error);

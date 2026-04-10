@@ -25,6 +25,7 @@ interface AccountUser {
   srmRegNo: string;
   role: "member" | "admin";
   avatarUrl?: string | null;
+  avatarData?: string | null;
   githubUsername?: string | null;
   linkedinUrl?: string | null;
   instagramUrl?: string | null;
@@ -180,12 +181,13 @@ export default function AccountPage() {
   }, [successMessage]);
 
   const avatarPreviewUrl = useMemo(() => {
-    if (!avatarFile) {
-      return user?.avatarUrl ?? null;
+    if (avatarFile) {
+      return URL.createObjectURL(avatarFile);
     }
 
-    return URL.createObjectURL(avatarFile);
-  }, [avatarFile, user?.avatarUrl]);
+    // Prioritize avatarData (Base64) over avatarUrl
+    return user?.avatarData ?? user?.avatarUrl ?? null;
+  }, [avatarFile, user?.avatarData, user?.avatarUrl]);
 
   useEffect(() => {
     return () => {
@@ -216,30 +218,54 @@ export default function AccountPage() {
       setError(null);
       setSuccessMessage(null);
 
-      const formData = new FormData();
-      formData.append("githubUsername", form.githubUsername);
-      formData.append("linkedinUrl", form.linkedinUrl);
-      formData.append("instagramUrl", form.instagramUrl);
-      formData.append("websiteUrl", form.websiteUrl);
-      formData.append("emailNotifications", String(form.emailNotifications));
-
+      // Convert avatar file to Base64 if provided
+      let avatarData: string | null = null;
       if (avatarFile) {
-        formData.append("avatar", avatarFile);
+        avatarData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(avatarFile);
+        });
       }
 
+      // Convert resume file to Base64 if provided
+      let resumeData: string | null = null;
       if (resumeFile) {
-        formData.append("resume", resumeFile);
+        resumeData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(resumeFile);
+        });
+      }
+
+      const payload: Record<string, unknown> = {
+        githubUsername: form.githubUsername,
+        linkedinUrl: form.linkedinUrl,
+        instagramUrl: form.instagramUrl,
+        websiteUrl: form.websiteUrl,
+        emailNotifications: form.emailNotifications,
+      };
+
+      if (avatarData) {
+        payload.avatarData = avatarData;
+      }
+
+      if (resumeData) {
+        payload.resumeData = resumeData;
       }
 
       const response = await fetch(endpoint, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: JSON.stringify(payload),
       });
 
-      const payload = (await response.json().catch(() => null)) as AccountApiResponse | null;
+      const apiPayload = (await response.json().catch(() => null)) as AccountApiResponse | null;
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -248,10 +274,10 @@ export default function AccountPage() {
           return;
         }
 
-        throw new Error(payload?.message ?? `Profile update failed (${response.status}).`);
+        throw new Error(apiPayload?.message ?? `Profile update failed (${response.status}).`);
       }
 
-      const nextUser = payload?.data?.user ?? null;
+      const nextUser = apiPayload?.data?.user ?? null;
 
       if (!nextUser) {
         throw new Error("Profile update response is missing user data.");
@@ -545,7 +571,7 @@ export default function AccountPage() {
                       }))
                     }
                   />
-                  <div className="h-5 w-9 rounded-full bg-neutral-700 peer-checked:bg-lime-500 peer-checked:after:translate-x-full after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-['']" />
+                  <div className="h-5 w-9 rounded-full bg-neutral-700 peer-checked:bg-lime-500 peer-checked:after:translate-x-full after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-['']" />
                 </label>
               </div>
             </section>
@@ -569,14 +595,14 @@ export default function AccountPage() {
       </div>
 
       {successMessage ? (
-        <section className="fixed bottom-4 right-4 z-[72] flex max-w-sm items-center gap-3 rounded-sm border border-lime-400/20 bg-neutral-950 px-4 py-4 text-sm text-lime-400 shadow-[0_18px_60px_rgba(0,0,0,0.45)]">
+        <section className="fixed bottom-4 right-4 z-72 flex max-w-sm items-center gap-3 rounded-sm border border-lime-400/20 bg-neutral-950 px-4 py-4 text-sm text-lime-400 shadow-[0_18px_60px_rgba(0,0,0,0.45)]">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span className="font-mono uppercase tracking-[0.18em]">{successMessage}</span>
         </section>
       ) : null}
 
       {error && user ? (
-        <section className="fixed bottom-4 right-4 z-[72] flex max-w-sm items-center gap-3 rounded-sm border border-rose-400/20 bg-neutral-950 px-4 py-4 text-sm text-rose-200 shadow-[0_18px_60px_rgba(0,0,0,0.45)]">
+        <section className="fixed bottom-4 right-4 z-72 flex max-w-sm items-center gap-3 rounded-sm border border-rose-400/20 bg-neutral-950 px-4 py-4 text-sm text-rose-200 shadow-[0_18px_60px_rgba(0,0,0,0.45)]">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="font-mono uppercase tracking-[0.18em]">{error}</span>
         </section>

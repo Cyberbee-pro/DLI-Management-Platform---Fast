@@ -84,24 +84,39 @@ exports.updateMe = async (req, res, next) => {
       user.notificationPrefs.email = req.body.emailNotifications === "true";
     }
 
-    const files = req.files || {};
-    const avatarFile = Array.isArray(files.avatar) ? files.avatar[0] : null;
-    const resumeFile = Array.isArray(files.resume) ? files.resume[0] : null;
+    // Handle avatar - prioritize Base64 Data URI from JSON body, then check for file uploads
+    if (req.body.avatarData && typeof req.body.avatarData === "string") {
+      // Direct Base64 Data URI from JSON body (highest priority)
+      user.avatarData = req.body.avatarData;
+    } else {
+      // Check for file uploads (FormData with Multer)
+      const files = req.files || {};
+      const avatarFile = Array.isArray(files.avatar) ? files.avatar[0] : null;
 
-    // Handle avatar file - convert to Base64 Data URI if buffer exists
-    if (avatarFile) {
-      if (avatarFile.buffer) {
-        // Memory storage - convert to Base64 Data URI
-        const base64 = avatarFile.buffer.toString("base64");
-        user.avatarData = `data:${avatarFile.mimetype};base64,${base64}`;
-      } else {
-        // Disk storage - use URL
-        user.avatarUrl = buildUploadUrl(req, avatarFile);
+      if (avatarFile) {
+        if (avatarFile.buffer) {
+          // Memory storage - convert to Base64 Data URI
+          const base64 = avatarFile.buffer.toString("base64");
+          user.avatarData = `data:${avatarFile.mimetype};base64,${base64}`;
+        } else {
+          // Disk storage - use URL
+          user.avatarUrl = buildUploadUrl(req, avatarFile);
+        }
       }
     }
 
-    if (resumeFile) {
-      user.resumeUrl = buildUploadUrl(req, resumeFile);
+    // Handle resume - prioritize Base64 Data URI from JSON body, then check for file uploads
+    if (req.body.resumeData && typeof req.body.resumeData === "string") {
+      user.resumeData = req.body.resumeData;
+      user.resumeUrl = req.body.resumeData;
+    } else {
+      const files = req.files || {};
+      const resumeFile = Array.isArray(files.resume) ? files.resume[0] : null;
+
+      if (resumeFile) {
+        user.resumeData = null;
+        user.resumeUrl = buildUploadUrl(req, resumeFile);
+      }
     }
 
     await user.save();
