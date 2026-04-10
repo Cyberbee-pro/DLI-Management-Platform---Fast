@@ -18,7 +18,7 @@ const taskSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Frontend", "ML", "DevOps", "Content"],
+      enum: ["Frontend", "Backend","DataBase","AI/ML","Research", "DevOps", "Content"],
       required: true,
     },
     points: {
@@ -108,6 +108,34 @@ const taskSchema = new mongoose.Schema(
         default: null,
       },
     },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    repoUrl: {
+      type: String,
+      default: null,
+    },
+    submissions: {
+      type: [
+        {
+          fileUrl: {
+            type: String,
+            required: true,
+          },
+          timestamp: {
+            type: Date,
+            default: Date.now,
+          },
+          comment: {
+            type: String,
+            default: null,
+          },
+        },
+      ],
+      default: [],
+    },
     submissionDetails: {
       url: {
         type: String,
@@ -123,14 +151,27 @@ const taskSchema = new mongoose.Schema(
       },
     },
     transferRequest: {
-      proposedAssigneeId: {
+      from: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      to: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         default: null,
       },
       status: {
         type: String,
-        enum: ["pending", "accepted", "rejected"],
+        enum: ["pending", "approved", "rejected"],
+        default: null,
+      },
+      adminApproved: {
+        type: Boolean,
+        default: false,
+      },
+      requestedAt: {
+        type: Date,
         default: null,
       },
     },
@@ -168,10 +209,12 @@ const taskSchema = new mongoose.Schema(
 // Indexes matching exact lookup needs defined in Schema.md
 taskSchema.index({ status: 1 });
 taskSchema.index({ "claimedBy._id": 1 }); // "My Tasks"
+taskSchema.index({ assignedTo: 1 });
 taskSchema.index({ isHotBounty: 1, status: 1 }); // "Hot Bounties Feed"
 taskSchema.index({ deadline: 1 }); // Background expiration cron sweep
 taskSchema.index({ "points.effective": -1 }); // Sorting by highest bounty
-taskSchema.index({ "transferRequest.proposedAssigneeId": 1 }, { sparse: true }); // Transfer indexing
+taskSchema.index({ "transferRequest.from": 1 }, { sparse: true });
+taskSchema.index({ "transferRequest.to": 1 }, { sparse: true }); // Transfer indexing
 taskSchema.index({ "transferRequest.status": 1 }, { sparse: true });
 
 module.exports = mongoose.model("Task", taskSchema);

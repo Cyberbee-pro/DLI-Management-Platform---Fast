@@ -40,6 +40,10 @@ const courseRequestSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.Decimal128,
         required: true,
       },
+      courseUrl: {
+        type: String,
+        default: null,
+      },
     },
     userBalanceAtRequest: {
       type: mongoose.Schema.Types.Decimal128,
@@ -47,7 +51,7 @@ const courseRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "completed"],
       required: true,
       default: "pending",
     },

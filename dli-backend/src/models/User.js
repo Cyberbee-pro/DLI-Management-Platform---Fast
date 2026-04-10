@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    avatarData: {
+      type: String,
+      default: null,
+    },
     role: {
       type: String,
       enum: ["member", "admin"],
@@ -112,21 +116,31 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    linkedinUrl: {
+      type: String,
+      default: null,
+    },
+    instagramUrl: {
+      type: String,
+      default: null,
+    },
+    websiteUrl: {
+      type: String,
+      default: null,
+    },
+    resumeUrl: {
+      type: String,
+      default: null,
+    },
+    resumeData: {
+      type: String,
+      default: null,
+    },
     notificationPrefs: {
       email: {
         type: Boolean,
         required: true,
         default: true,
-      },
-      discord: {
-        type: Boolean,
-        required: true,
-        default: false,
-      },
-      slack: {
-        type: Boolean,
-        required: true,
-        default: false,
       },
     },
   },

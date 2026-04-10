@@ -1,9 +1,12 @@
 const express = require("express");
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 const router = express.Router();
 const requestController = require("../controllers/request.controller");
-const { verifyToken } = require("../middleware/auth.middleware");
+const { verifyToken, requireAdmin } = require("../middleware/auth.middleware");
 const { validateRequest } = require("../middleware/validate");
+
+// GET /api/v1/requests - Retrieve current user's requests
+router.get("/", verifyToken, requestController.getUserRequests);
 
 // POST /api/v1/requests
 router.post(
@@ -18,6 +21,40 @@ router.post(
   ],
   validateRequest,
   requestController.createRequest,
+);
+
+// PATCH /api/v1/requests/:id
+router.patch(
+  "/:id",
+  verifyToken,
+  [
+    param("id").isMongoId().withMessage("Invalid request ID"),
+    body("status")
+      .exists()
+      .withMessage("Status is required")
+      .isIn(["completed"])
+      .withMessage("Invalid status value"),
+  ],
+  validateRequest,
+  requestController.updateRequestStatus,
+);
+
+// PATCH /api/v1/requests/:id/approve
+router.patch(
+  "/:id/approve",
+  verifyToken,
+  requireAdmin,
+  [
+    param("id").isMongoId().withMessage("Invalid request ID"),
+    body("action")
+      .exists()
+      .withMessage("Action is required")
+      .isIn(["approved", "rejected"])
+      .withMessage("Invalid action value (must be approved or rejected)"),
+    body("adminNote").optional().isString().withMessage("Admin note must be a string"),
+  ],
+  validateRequest,
+  requestController.approveCourseRequest,
 );
 
 module.exports = router;
