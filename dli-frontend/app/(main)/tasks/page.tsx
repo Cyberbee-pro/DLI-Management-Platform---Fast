@@ -38,6 +38,7 @@ import {
   isTransferApprovedForUser,
 } from "@/components/task-board/task-utils";
 import type { TaskRecord } from "@/components/task-board/types";
+import { dispatchShellProfileRefresh } from "@/lib/session-events";
 
 const ALL_TASKS_FILTER = "All Tasks";
 const TASK_FILTER_OPTIONS = [ALL_TASKS_FILTER, ...TASK_CATEGORIES] as const;
@@ -242,6 +243,10 @@ export default function TaskBoardPage() {
 
       if (closeSubmission) {
         setSubmissionTaskId(null);
+      }
+
+      if (type === "claim") {
+        dispatchShellProfileRefresh();
       }
 
       setActionNotice({

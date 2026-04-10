@@ -20,12 +20,13 @@ const notificationSchema = new mongoose.Schema(
         "POINTS_APPROVED",
         "TASK_TRANSFER",
         "COURSE_APPROVED",
+        "PROFILE_QUERY",
       ],
       required: true,
     },
     channel: {
       type: String,
-      enum: ["email", "discord", "slack"],
+      enum: ["email", "discord", "slack", "in_app"],
       required: true,
     },
     message: {
@@ -33,16 +34,8 @@ const notificationSchema = new mongoose.Schema(
       required: true,
     },
     metadata: {
-      taskId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Task",
-        default: null,
-      },
-      courseId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Course",
-        default: null,
-      },
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     isRead: {
       type: Boolean,

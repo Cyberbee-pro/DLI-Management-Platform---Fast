@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { serializeDocument } = require("../utils/serialize");
 const { toDecimal128 } = require("../utils/decimal.utils");
+const { createAuditLog } = require("../utils/audit");
 
 /**
  * Controller enforcing authentication mechanics gracefully.
@@ -57,6 +58,17 @@ async function login(req, res) {
     // Refresh lastLoginAt so dormant sweeps and engagement tracking remains accurate asynchronously.
     user.lastLoginAt = new Date();
     await user.save();
+
+    await createAuditLog({
+      action: "USER_LOGIN",
+      tag: "AUTH",
+      actor: user,
+      target: user._id,
+      message: `${user.name} authenticated successfully.`,
+      metadata: {
+        lastLoginAt: user.lastLoginAt,
+      },
+    });
 
     // Payload explicitly limits token size and prevents accidental inclusion of points or passwords via serialize properties.
     const payload = {
@@ -132,6 +144,18 @@ async function register(req, res) {
     });
 
     await user.save();
+
+    await createAuditLog({
+      action: "USER_CREATED",
+      tag: "AUTH",
+      actor: user,
+      target: user._id,
+      message: `${user.name} joined the F.A.S.T. network.`,
+      metadata: {
+        email: user.email,
+        srmRegNo: user.srmRegNo,
+      },
+    });
 
     const payload = {
       _id: user._id.toString(),
@@ -217,6 +241,18 @@ async function bootstrapAdmin(req, res) {
     });
 
     await admin.save();
+
+    await createAuditLog({
+      action: "ADMIN_BOOTSTRAPPED",
+      tag: "AUTH",
+      actor: admin,
+      target: admin._id,
+      message: `${admin.name} initialized the first administrator node.`,
+      metadata: {
+        email: admin.email,
+        srmRegNo: admin.srmRegNo,
+      },
+    });
 
     res.status(201).json({
       success: true,

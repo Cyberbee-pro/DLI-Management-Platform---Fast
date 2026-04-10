@@ -2,6 +2,8 @@ export interface ShellUser {
   _id: string;
   name: string;
   role: "member" | "admin";
+  avatarUrl?: string | null;
+  systemPoolBalance?: number | string | null;
   points: {
     balance: number | string;
   };
@@ -13,6 +15,9 @@ export interface ShellProfileResponse {
   code?: string;
   data?: {
     user: ShellUser;
+    systemConfig?: {
+      systemPoolBalance?: number | string | null;
+    } | null;
   };
 }
 

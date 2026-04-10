@@ -5,7 +5,6 @@ import { Menu, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 import {
-  OPERATOR_PROFILE,
   PRIMARY_NAV_ITEMS,
   SECONDARY_NAV_ITEMS,
   type NavItem,
@@ -83,6 +82,9 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const avatarLabel = getUserInitials(user?.name);
+  const visiblePrimaryNavItems = PRIMARY_NAV_ITEMS.filter(
+    (item) => item.href !== "/analytics" || user?.role === "admin",
+  );
 
   function handleLogout() {
     onClose?.();
@@ -162,14 +164,24 @@ export function Sidebar({
                 )}
               </div>
 
-              <div className="grid h-12 w-12 place-items-center rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-xs text-lime-300">
-                {loading ? "..." : avatarLabel}
+              <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-xs text-lime-300">
+                {loading ? (
+                  "..."
+                ) : user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={`${user.name} avatar`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  avatarLabel
+                )}
               </div>
             </div>
           </section>
 
           <nav className="mt-6 space-y-2">
-            {PRIMARY_NAV_ITEMS.map((item) => (
+            {visiblePrimaryNavItems.map((item) => (
               <NavigationLink
                 key={item.label}
                 item={item}
@@ -187,7 +199,7 @@ export function Sidebar({
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_12px_#a3e635]" />
                 <p className="font-mono text-2xl font-semibold text-zinc-100">
-                  {OPERATOR_PROFILE.systemPoolBalance}
+                  {formatUserBalance(user?.systemPoolBalance)}
                 </p>
               </div>
             </section>

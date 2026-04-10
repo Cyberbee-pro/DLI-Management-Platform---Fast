@@ -116,6 +116,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    instagramUrl: {
+      type: String,
+      default: null,
+    },
+    websiteUrl: {
+      type: String,
+      default: null,
+    },
+    resumeUrl: {
+      type: String,
+      default: null,
+    },
     notificationPrefs: {
       email: {
         type: Boolean,

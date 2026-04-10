@@ -1,12 +1,13 @@
 const mongoose = require("mongoose");
 const Task = require("../models/Task");
 const User = require("../models/User");
-const AuditLog = require("../models/AuditLog");
 const {
   toDecimal128,
   addDecimal,
 } = require("../utils/decimal.utils");
 const { serializeDocument } = require("../utils/serialize");
+const { createAuditLog } = require("../utils/audit");
+const { incrementSystemPoolBalance } = require("../utils/system-config");
 
 function withTaskRelations(query) {
   return query
@@ -159,22 +160,38 @@ async function completeTaskSubmission(taskId, reviewer) {
     await task.save({ session });
     await user.save({ session });
 
-    const auditLog = new AuditLog({
+    const systemConfig = await incrementSystemPoolBalance(task.points.effective, { session });
+
+    await createAuditLog({
       action: "TASK_COMPLETED",
+      tag: "GOVERNANCE",
       target: user._id,
-      actor: {
-        _id: reviewer._id,
-        role: reviewer.role,
-      },
+      actor: reviewer,
+      message: `${reviewer.name} approved "${task.title}" for ${user.name}.`,
       metadata: {
         taskId: task._id,
         pointsDelta: task.points.effective,
         previousStatus: "in_review",
         newStatus: "completed",
+        systemPoolBalance: systemConfig.systemPoolBalance,
       },
+      session,
     });
 
-    await auditLog.save({ session });
+    await createAuditLog({
+      action: "SYSTEM_POOL_INCREMENTED",
+      tag: "POOL",
+      actor: reviewer,
+      target: user._id,
+      message: `System pool increased after "${task.title}" approval.`,
+      metadata: {
+        taskId: task._id,
+        pointsDelta: task.points.effective,
+        systemPoolBalance: systemConfig.systemPoolBalance,
+      },
+      session,
+    });
+
     await session.commitTransaction();
 
     return {
@@ -284,6 +301,17 @@ exports.createTask = async (req, res, next) => {
 
     await newTask.save();
 
+    await createAuditLog({
+      action: "TASK_CREATED",
+      tag: "SYSTEM",
+      actor: req.user,
+      message: `${req.user.name} published task "${newTask.title}".`,
+      metadata: {
+        taskId: newTask._id,
+        pointsDelta: newTask.points.effective,
+      },
+    });
+
     return res.status(201).json({
       success: true,
       data: serializeDocument(newTask),
@@ -330,6 +358,19 @@ exports.claimTask = async (req, res, next) => {
     clearTransferRequest(task);
 
     await task.save();
+
+    await createAuditLog({
+      action: "TASK_CLAIMED",
+      tag: "CLAIM",
+      actor: req.user,
+      target: req.user._id,
+      message: `${req.user.name} claimed "${task.title}".`,
+      metadata: {
+        taskId: task._id,
+        previousStatus: "open",
+        newStatus: "claimed",
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -389,6 +430,20 @@ exports.submitTask = async (req, res, next) => {
     task.status = "in_review";
 
     await task.save();
+
+    await createAuditLog({
+      action: "TASK_SUBMITTED",
+      tag: "CLAIM",
+      actor: req.user,
+      target: req.user._id,
+      message: `${req.user.name} submitted work for "${task.title}".`,
+      metadata: {
+        taskId: task._id,
+        fileUrl,
+        previousStatus: "claimed",
+        newStatus: "in_review",
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -456,6 +511,19 @@ exports.updateSubmission = async (req, res, next) => {
     task.status = "in_review";
 
     await task.save();
+
+    await createAuditLog({
+      action: "TASK_SUBMISSION_UPDATED",
+      tag: "CLAIM",
+      actor: req.user,
+      target: req.user._id,
+      message: `${req.user.name} updated the submission for "${task.title}".`,
+      metadata: {
+        taskId: task._id,
+        fileUrl,
+        newStatus: "in_review",
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -553,6 +621,19 @@ exports.requestTransfer = async (req, res, next) => {
 
     await task.save();
 
+    await createAuditLog({
+      action: "TASK_TRANSFER_REQUESTED",
+      tag: "CLAIM",
+      actor: req.user,
+      target: targetUser._id,
+      message: `${req.user.name} requested a transfer for "${task.title}".`,
+      metadata: {
+        taskId: task._id,
+        fromUserId: currentAssigneeId,
+        toUserId: targetUser._id,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       data: await loadSerializedTask(task._id),
@@ -595,6 +676,18 @@ exports.approveTransfer = async (req, res, next) => {
     task.transferRequest.adminApproved = true;
 
     await task.save();
+
+    await createAuditLog({
+      action: "TASK_TRANSFER_APPROVED",
+      tag: "GOVERNANCE",
+      actor: req.user,
+      target: task.transferRequest.to,
+      message: `${req.user.name} approved a transfer for "${task.title}".`,
+      metadata: {
+        taskId: task._id,
+        toUserId: task.transferRequest.to,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -662,6 +755,17 @@ exports.acceptTransfer = async (req, res, next) => {
 
     await task.save();
 
+    await createAuditLog({
+      action: "TASK_TRANSFER_ACCEPTED",
+      tag: "CLAIM",
+      actor: req.user,
+      target: req.user._id,
+      message: `${req.user.name} accepted a transfer for "${task.title}".`,
+      metadata: {
+        taskId: task._id,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       data: await loadSerializedTask(task._id),
@@ -709,6 +813,19 @@ exports.withdrawTask = async (req, res, next) => {
     clearAssignment(task);
 
     await task.save();
+
+    await createAuditLog({
+      action: "TASK_WITHDRAWN",
+      tag: "CLAIM",
+      actor: req.user,
+      target: req.user._id,
+      message: `${req.user.name} released "${task.title}" back to the board.`,
+      metadata: {
+        taskId: task._id,
+        previousStatus: "claimed",
+        newStatus: "open",
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -777,6 +894,20 @@ exports.rejectTaskSubmission = async (req, res, next) => {
     };
 
     await task.save();
+
+    await createAuditLog({
+      action: "TASK_REJECTED",
+      tag: "GOVERNANCE",
+      actor: req.user,
+      target: getAssignedUserId(task),
+      message: `${req.user.name} returned "${task.title}" for revision.`,
+      metadata: {
+        taskId: task._id,
+        previousStatus: "in_review",
+        newStatus: "claimed",
+        reason: req.body.reason || null,
+      },
+    });
 
     return res.status(200).json({
       success: true,

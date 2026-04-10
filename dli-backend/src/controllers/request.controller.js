@@ -1,11 +1,10 @@
-const { body } = require("express-validator");
 const Course = require("../models/Course");
 const CourseRequest = require("../models/CourseRequest");
 const User = require("../models/User");
-const AuditLog = require("../models/AuditLog");
 const { fromDecimal128 } = require("../utils/decimal.utils");
 const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
+const { createAuditLog } = require("../utils/audit");
 
 function generateFallbackAccessCode(courseId) {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -105,15 +104,17 @@ exports.createRequest = async (req, res, next) => {
 
     await newRequest.save();
 
-    // Create and save a new AuditLog document
-    const auditLog = new AuditLog({
+    await createAuditLog({
       action: "COURSE_REQUESTED",
-      actor: user._id,
+      tag: "COURSE",
+      actor: user,
       target: user._id,
-      metadata: { courseId: course._id },
+      message: `${user.name} requested course access for ${course.title}.`,
+      metadata: {
+        courseId: course._id,
+        courseRequestId: newRequest._id,
+      },
     });
-
-    await auditLog.save();
 
     // Format the final success response
     return res.status(200).json({
@@ -154,6 +155,19 @@ exports.approveCourseRequest = async (req, res, next) => {
       courseRequest.processedAt = new Date();
 
       await courseRequest.save();
+
+      await createAuditLog({
+        action: "COURSE_REJECTED",
+        tag: "GOVERNANCE",
+        actor: req.user,
+        target: courseRequest.requestedBy._id,
+        message: `${req.user.name} rejected course access for ${courseRequest.requestedBy.name}.`,
+        metadata: {
+          courseId: courseRequest.course._id,
+          courseRequestId: courseRequest._id,
+          reason: adminNote || null,
+        },
+      });
 
       return res.status(200).json({
         success: true,
@@ -269,19 +283,21 @@ exports.approveCourseRequest = async (req, res, next) => {
     };
     await user.save({ session });
 
-    const AuditLog = require("../models/AuditLog");
-    const auditLog = new AuditLog({
+    await createAuditLog({
       action: "COURSE_APPROVED",
-      actor: req.user._id,
+      tag: "GOVERNANCE",
+      actor: req.user,
       target: user._id,
-      metadata: { 
-        courseRequestId: courseRequest._id, 
-        courseId: course._id, 
+      message: `${req.user.name} approved course access for ${user.name}.`,
+      metadata: {
+        courseRequestId: courseRequest._id,
+        courseId: course._id,
         pointsDeducted: course.pointsRequired,
-        reason: `recent_xp_gain:${standingSnapshot.recentXpGain}`
+        pointsDelta: 0,
+        reason: `recent_xp_gain:${standingSnapshot.recentXpGain}`,
       },
+      session,
     });
-    await auditLog.save({ session });
 
     await session.commitTransaction();
 

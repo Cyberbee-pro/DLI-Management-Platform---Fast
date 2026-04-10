@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const path = require("path");
 
 if (!process.env.MONGODB_URI) {
   console.error(
@@ -52,6 +53,8 @@ app.use(limiter);
 
 // Parse incoming request bodies in JSON format
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 
 // Root/Health Check
@@ -85,6 +88,17 @@ app.use((err, req, res, next) => {
   console.error("Unhandled Error:", err);
 
   const isProd = process.env.NODE_ENV === "production";
+  const isUploadError =
+    err?.name === "MulterError" ||
+    /uploads must|file too large/i.test(err?.message || "");
+
+  if (isUploadError) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+      code: "INVALID_UPLOAD",
+    });
+  }
 
   const response = {
     success: false,
