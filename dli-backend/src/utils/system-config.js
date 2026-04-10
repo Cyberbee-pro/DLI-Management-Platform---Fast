@@ -1,5 +1,5 @@
 const SystemConfig = require("../models/SystemConfig");
-const { addDecimal, toDecimal128 } = require("./decimal.utils");
+const { addDecimal, subtractDecimal, toDecimal128 } = require("./decimal.utils");
 
 async function ensureSystemConfig({ session } = {}) {
   let query = SystemConfig.findOneAndUpdate(
@@ -11,7 +11,7 @@ async function ensureSystemConfig({ session } = {}) {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
       upsert: true,
       setDefaultsOnInsert: true,
     },
@@ -31,7 +31,15 @@ async function incrementSystemPoolBalance(amount, { session } = {}) {
   return systemConfig;
 }
 
+async function decrementSystemPoolBalance(amount, { session } = {}) {
+  const systemConfig = await ensureSystemConfig({ session });
+  systemConfig.systemPoolBalance = subtractDecimal(systemConfig.systemPoolBalance, amount);
+  await systemConfig.save(session ? { session } : undefined);
+  return systemConfig;
+}
+
 module.exports = {
   ensureSystemConfig,
   incrementSystemPoolBalance,
+  decrementSystemPoolBalance,
 };

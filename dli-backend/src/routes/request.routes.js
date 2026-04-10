@@ -5,6 +5,9 @@ const requestController = require("../controllers/request.controller");
 const { verifyToken, requireAdmin } = require("../middleware/auth.middleware");
 const { validateRequest } = require("../middleware/validate");
 
+// GET /api/v1/requests - Retrieve current user's requests
+router.get("/", verifyToken, requestController.getUserRequests);
+
 // POST /api/v1/requests
 router.post(
   "/",
@@ -18,6 +21,22 @@ router.post(
   ],
   validateRequest,
   requestController.createRequest,
+);
+
+// PATCH /api/v1/requests/:id
+router.patch(
+  "/:id",
+  verifyToken,
+  [
+    param("id").isMongoId().withMessage("Invalid request ID"),
+    body("status")
+      .exists()
+      .withMessage("Status is required")
+      .isIn(["completed"])
+      .withMessage("Invalid status value"),
+  ],
+  validateRequest,
+  requestController.updateRequestStatus,
 );
 
 // PATCH /api/v1/requests/:id/approve

@@ -12,6 +12,22 @@ function withTaskRelations(query) {
     .populate("transferRequest.to", "name role avatarUrl");
 }
 
+function serializeTaskWithSubmission(task) {
+  const serializedTask = serializeDocument(task);
+
+  return {
+    ...serializedTask,
+    submissions: Array.isArray(serializedTask.submissions)
+      ? serializedTask.submissions
+      : [],
+    submissionDetails: serializedTask.submissionDetails ?? {
+      url: null,
+      comment: null,
+      submittedAt: null,
+    },
+  };
+}
+
 /**
  * Fetches the dashboard properties for the authenticated user, excluding passwords.
  * Aggregates their personal course requests and claimed tasks, sorted by recent activity.
@@ -50,7 +66,7 @@ exports.getMyDashboard = async (req, res, next) => {
       rawPendingCourseApprovals,
       systemConfig,
     ] = await Promise.all([
-      CourseRequest.find({ requestedBy: userId }).sort({ requestedAt: -1 }),
+      CourseRequest.find({ "requestedBy._id": userId }).sort({ requestedAt: -1 }),
       withTaskRelations(
         Task.find({
           status: { $in: ["claimed", "in_review"] },
@@ -79,7 +95,7 @@ exports.getMyDashboard = async (req, res, next) => {
       })),
     );
     const serializedPendingTaskApprovals = pendingTaskApprovals.map((task) =>
-      serializeDocument(task),
+      serializeTaskWithSubmission(task),
     );
     const canReviewTasks =
       user.role === "admin" || serializedPendingTaskApprovals.length > 0;
@@ -90,8 +106,8 @@ exports.getMyDashboard = async (req, res, next) => {
       data: {
         user: serializeDocument(user),
         courseRequests: courseRequests.map((cr) => serializeDocument(cr)),
-        claimedTasks: claimedTasks.map((task) => serializeDocument(task)),
-        activeTasks: claimedTasks.map((task) => serializeDocument(task)),
+        claimedTasks: claimedTasks.map((task) => serializeTaskWithSubmission(task)),
+        activeTasks: claimedTasks.map((task) => serializeTaskWithSubmission(task)),
         governance: {
           canReviewTasks,
           canReviewCourses,

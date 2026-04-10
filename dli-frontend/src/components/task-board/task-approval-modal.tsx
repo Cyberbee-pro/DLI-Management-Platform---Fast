@@ -35,9 +35,12 @@ export function TaskApprovalModal({
     return null;
   }
 
-  const submittedUrl = task.submissionDetails?.url ?? task.submissions?.at(-1)?.fileUrl ?? null;
+  const latestSubmission = task.submissions?.at(-1) ?? null;
+  const submittedUrl = task.submissionDetails?.url ?? latestSubmission?.fileUrl ?? null;
   const submittedComment =
-    task.submissionDetails?.comment ?? task.submissions?.at(-1)?.comment ?? null;
+    task.submissionDetails?.comment ?? latestSubmission?.comment ?? null;
+  const submittedAt =
+    task.submissionDetails?.submittedAt ?? latestSubmission?.timestamp ?? null;
 
   return (
     <TaskModalShell
@@ -62,10 +65,25 @@ export function TaskApprovalModal({
               <div className="rounded-sm border border-neutral-800 bg-black/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
-                      Uploaded Work
+                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-lime-300">
+                      EVIDENCE_VAULT
                     </p>
-                    <p className="mt-2 break-all text-sm text-zinc-100">{submittedUrl}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-neutral-500">
+                      Submission Link
+                    </p>
+                    <a
+                      href={submittedUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block break-all text-sm text-lime-300 underline decoration-lime-400/30 underline-offset-4"
+                    >
+                      {submittedUrl}
+                    </a>
+                    {submittedAt ? (
+                      <p className="mt-3 text-xs uppercase tracking-[0.18em] text-neutral-500">
+                        Captured {new Date(submittedAt).toLocaleString("en-IN")}
+                      </p>
+                    ) : null}
                   </div>
                   <a
                     href={submittedUrl}
@@ -85,7 +103,11 @@ export function TaskApprovalModal({
                   />
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="rounded-sm border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-200">
+                EVIDENCE_VAULT is empty for this submission. No URL was returned by the backend.
+              </div>
+            )}
           </div>
 
           <aside className="space-y-4">

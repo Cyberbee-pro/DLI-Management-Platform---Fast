@@ -51,9 +51,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Parse incoming request bodies in JSON format
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Parse incoming request bodies in JSON format with increased limit for Base64 payloads
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 
@@ -75,6 +75,8 @@ app.use("/api/v1/requests", require("./routes/request.routes"));
 app.use("/api/v1/tasks", require("./routes/task.routes"));
 app.use("/api/v1/users", require("./routes/user.routes"));
 app.use("/api/v1/admin", require("./routes/admin.routes"));
+app.use("/api/v1/notifications", require("./routes/notification.routes"));
+app.use("/api/v1/support", require("./routes/support.routes"));
 
 // Catch-all 404 handler to prevent HTML leakage
 app.use((req, res) => {
@@ -90,7 +92,7 @@ app.use((err, req, res, next) => {
   const isProd = process.env.NODE_ENV === "production";
   const isUploadError =
     err?.name === "MulterError" ||
-    /uploads must|file too large/i.test(err?.message || "");
+    /uploads must|file too large|bulk import uploads must/i.test(err?.message || "");
 
   if (isUploadError) {
     return res.status(400).json({

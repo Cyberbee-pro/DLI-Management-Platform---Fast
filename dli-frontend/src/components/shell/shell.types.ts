@@ -3,10 +3,31 @@ export interface ShellUser {
   name: string;
   role: "member" | "admin";
   avatarUrl?: string | null;
+  avatarData?: string | null;
+  linkedinUrl?: string | null;
+  instagramUrl?: string | null;
+  websiteUrl?: string | null;
+  resumeUrl?: string | null;
   systemPoolBalance?: number | string | null;
   points: {
     balance: number | string;
   };
+}
+
+export interface ShellNotification {
+  _id: string;
+  type:
+    | "DEADLINE_REMINDER"
+    | "HOT_BOUNTY"
+    | "POINTS_APPROVED"
+    | "TASK_TRANSFER"
+    | "COURSE_APPROVED"
+    | "PROFILE_QUERY";
+  channel: "email" | "discord" | "slack" | "in_app";
+  message: string;
+  metadata?: Record<string, unknown>;
+  isRead: boolean;
+  sentAt: string;
 }
 
 export interface ShellProfileResponse {
@@ -18,6 +39,16 @@ export interface ShellProfileResponse {
     systemConfig?: {
       systemPoolBalance?: number | string | null;
     } | null;
+  };
+}
+
+export interface ShellNotificationsResponse {
+  success: boolean;
+  message?: string;
+  code?: string;
+  data?: {
+    notifications: ShellNotification[];
+    unreadCount: number;
   };
 }
 

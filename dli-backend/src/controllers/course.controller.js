@@ -65,9 +65,11 @@ exports.createCourse = async (req, res, next) => {
       description,
       pointsRequired,
       imageUrl,
+      courseUrl,
       category,
       level,
       provider,
+      inventoryCount = 0,
     } = req.body;
 
     // Validate level is one of the allowed values
@@ -84,10 +86,11 @@ exports.createCourse = async (req, res, next) => {
       description,
       pointsRequired: toDecimal128(Number(pointsRequired)),
       imageUrl,
+      courseUrl,
       category,
       level,
       provider,
-      inventoryCount: 0,
+      inventoryCount: Math.max(0, parseInt(inventoryCount, 10) || 0),
       isActive: true,
     });
 
@@ -95,7 +98,7 @@ exports.createCourse = async (req, res, next) => {
 
     await createAuditLog({
       action: "COURSE_CREATED",
-      tag: "ADMIN",
+      tag: "SYSTEM",
       actor: req.user,
       target: newCourse._id,
       message: `Admin ${req.user.name} created course "${newCourse.title}".`,
@@ -126,7 +129,7 @@ exports.createCourse = async (req, res, next) => {
 exports.updateCourse = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, description, pointsRequired, imageUrl, category, level, isActive } = req.body;
+    const { title, description, pointsRequired, imageUrl, courseUrl, category, level, isActive } = req.body;
 
     const course = await Course.findById(id);
     if (!course) {
@@ -151,6 +154,7 @@ exports.updateCourse = async (req, res, next) => {
     if (description !== undefined) course.description = description;
     if (pointsRequired !== undefined) course.pointsRequired = toDecimal128(Number(pointsRequired));
     if (imageUrl !== undefined) course.imageUrl = imageUrl;
+    if (courseUrl !== undefined) course.courseUrl = courseUrl;
     if (category !== undefined) course.category = category;
     if (level !== undefined) course.level = level;
     if (isActive !== undefined) course.isActive = isActive;
@@ -159,7 +163,7 @@ exports.updateCourse = async (req, res, next) => {
 
     await createAuditLog({
       action: "COURSE_UPDATED",
-      tag: "ADMIN",
+      tag: "SYSTEM",
       actor: req.user,
       target: course._id,
       message: `Admin ${req.user.name} updated course "${course.title}".`,
@@ -205,7 +209,7 @@ exports.deleteCourse = async (req, res, next) => {
 
     await createAuditLog({
       action: "COURSE_DELETED",
-      tag: "ADMIN",
+      tag: "SYSTEM",
       actor: req.user,
       target: course._id,
       message: `Admin ${req.user.name} deleted course "${course.title}".`,

@@ -7,12 +7,22 @@ import { API_BASE_URL } from "@/config/constants";
 import { AppFooter } from "@/components/shell/app-footer";
 import { MobileNavigation, Sidebar } from "@/components/shell/sidebar";
 import { TopHeader } from "@/components/shell/top-header";
-import type { ShellProfileResponse, ShellUser } from "@/components/shell/shell.types";
+import type {
+  ShellNotification,
+  ShellNotificationsResponse,
+  ShellProfileResponse,
+  ShellUser,
+} from "@/components/shell/shell.types";
 import { SHELL_PROFILE_REFRESH_EVENT } from "@/lib/session-events";
 
 function buildProfileEndpoint() {
   const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
   return sanitizedBaseUrl ? `${sanitizedBaseUrl}/dashboard/me` : "";
+}
+
+function buildNotificationsEndpoint() {
+  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/notifications?limit=12` : "";
 }
 
 export default function MainLayout({
@@ -23,6 +33,9 @@ export default function MainLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<ShellUser | null>(null);
+  const [notifications, setNotifications] = useState<ShellNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
@@ -98,15 +111,75 @@ export default function MainLayout({
     [router],
   );
 
+  const loadNotifications = useCallback(
+    async (signal?: AbortSignal) => {
+      const token = window.localStorage.getItem("token");
+      const notificationsEndpoint = buildNotificationsEndpoint();
+
+      if (!token || !notificationsEndpoint) {
+        setNotifications([]);
+        setUnreadNotifications(0);
+        setNotificationsLoading(false);
+        return;
+      }
+
+      try {
+        setNotificationsLoading(true);
+
+        const response = await fetch(notificationsEndpoint, {
+          method: "GET",
+          cache: "no-store",
+          signal,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const payload =
+          (await response.json().catch(() => null)) as ShellNotificationsResponse | null;
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.localStorage.removeItem("token");
+            router.replace("/login");
+            return;
+          }
+
+          throw new Error(payload?.message ?? `Failed to load notifications (${response.status}).`);
+        }
+
+        if (!signal?.aborted) {
+          setNotifications(
+            Array.isArray(payload?.data?.notifications) ? payload.data.notifications : [],
+          );
+          setUnreadNotifications(payload?.data?.unreadCount ?? 0);
+        }
+      } catch (notificationError) {
+        if (!signal?.aborted) {
+          console.error("Unable to load notifications:", notificationError);
+          setNotifications([]);
+          setUnreadNotifications(0);
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setNotificationsLoading(false);
+        }
+      }
+    },
+    [router],
+  );
+
   useEffect(() => {
     const controller = new AbortController();
     void loadShellProfile(controller.signal);
+    void loadNotifications(controller.signal);
     return () => controller.abort();
-  }, [loadShellProfile]);
+  }, [loadNotifications, loadShellProfile]);
 
   useEffect(() => {
     function handleShellRefresh() {
       void loadShellProfile();
+      void loadNotifications();
     }
 
     window.addEventListener(
@@ -120,7 +193,7 @@ export default function MainLayout({
         handleShellRefresh as EventListener,
       );
     };
-  }, [loadShellProfile]);
+  }, [loadNotifications, loadShellProfile]);
 
   useEffect(() => {
     setMobileNavigationOpen(false);
@@ -136,7 +209,13 @@ export default function MainLayout({
       />
 
       <div className="min-h-screen max-w-full overflow-x-hidden lg:pl-72">
-        <TopHeader user={user} loading={loading} />
+        <TopHeader
+          user={user}
+          loading={loading}
+          notifications={notifications}
+          notificationsLoading={notificationsLoading}
+          unreadCount={unreadNotifications}
+        />
         <MobileNavigation
           isOpen={mobileNavigationOpen}
           onToggle={() => setMobileNavigationOpen((current) => !current)}

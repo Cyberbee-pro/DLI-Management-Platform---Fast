@@ -132,6 +132,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    resumeData: {
+      type: String,
+      default: null,
+    },
     notificationPrefs: {
       email: {
         type: Boolean,

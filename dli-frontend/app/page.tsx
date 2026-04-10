@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import BorderGlow from "@/components/BorderGlow";
@@ -87,18 +88,18 @@ export default function BrilliantLanding() {
 
         {/* Parallax Image Column */}
         <div className="space-y-32 pt-32 lg:pt-64">
-          <motion.div style={{ y: imgY1 }} className="relative aspect-[4/5] rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
-            <img src="/events/hackathon_01.jpg" alt="Hackathon" className="object-cover w-full h-full" />
+          <motion.div style={{ y: imgY1 }} className="relative aspect-4/5 rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
+            <Image src="/events/hackathon_01.jpg" alt="Hackathon" fill className="object-cover" />
             <div className="absolute bottom-6 left-6 text-[10px] font-mono bg-black/50 backdrop-blur px-2 py-1">2026_SRM_HACKATHON</div>
           </motion.div>
 
-          <motion.div style={{ y: imgY2 }} className="relative aspect-[1/1] rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
-            <img src="/events/workshop_01.jpg" alt="NVIDIA Workshop" className="object-cover w-full h-full" />
+          <motion.div style={{ y: imgY2 }} className="relative aspect-square rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
+            <Image src="/events/workshop_01.jpg" alt="NVIDIA Workshop" fill className="object-cover" />
             <div className="absolute bottom-6 left-6 text-[10px] font-mono bg-black/50 backdrop-blur px-2 py-1">NVIDIA_DLI_BOOTCAMP</div>
           </motion.div>
 
-          <motion.div style={{ y: imgY3 }} className="relative aspect-[4/3] rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
-            <img src="/events/team_01.jpg" alt="Team" className="object-cover w-full h-full" />
+          <motion.div style={{ y: imgY3 }} className="relative aspect-4/3 rounded-2xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
+            <Image src="/events/team_01.jpg" alt="Team" fill className="object-cover" />
             <div className="absolute bottom-6 left-6 text-[10px] font-mono bg-black/50 backdrop-blur px-2 py-1">ARCHITECT_MEETING_v2</div>
           </motion.div>
           

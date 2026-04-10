@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { API_BASE_URL } from "@/config/constants";
+import { AdminToolbox } from "@/components/dashboard/admin-toolbox";
 import {
   acceptTransferRequest,
   approveCourseRequestRequest,
@@ -61,7 +62,7 @@ interface DashboardUser {
 
 interface CourseRequestRecord {
   _id: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "completed";
   requestedAt: string;
   processedAt?: string | null;
   redemptionCode?: string | null;
@@ -76,6 +77,7 @@ interface CourseRequestRecord {
     _id: string;
     title: string;
     pointsRequired: string;
+    courseUrl?: string | null;
   };
 }
 
@@ -225,6 +227,10 @@ function formatStatus(status: string) {
 }
 
 function statusClasses(status: CourseRequestRecord["status"]) {
+  if (status === "completed") {
+    return "border-lime-400/30 bg-lime-400/15 text-lime-200";
+  }
+
   if (status === "approved") {
     return "border-lime-400/20 bg-lime-400/10 text-lime-300";
   }
@@ -758,6 +764,19 @@ useEffect(() => {
     }
   }
 
+  async function handleAdminToolboxSuccess(message: string) {
+    const token = window.localStorage.getItem("token");
+
+    if (token) {
+      await refreshDashboard(token);
+    }
+
+    setActionNotice({
+      tone: "success",
+      message,
+    });
+  }
+
   if (loading) {
     return (
       <div className="panel-surface flex items-center gap-3 rounded-sm border border-neutral-800 px-5 py-5 text-sm text-zinc-400">
@@ -1030,6 +1049,13 @@ useEffect(() => {
           </div>
         </section>
 
+        {user.role === "admin" ? (
+          <AdminToolbox
+            onUnauthorized={handleUnauthorized}
+            onSuccess={(message) => void handleAdminToolboxSuccess(message)}
+          />
+        ) : null}
+
         {governanceVisible ? (
           <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
             <div className="flex flex-col gap-3 border-b border-neutral-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
@@ -1225,7 +1251,7 @@ useEffect(() => {
                   </span>
                 </div>
 
-                <div className="mt-4 max-h-[26rem] space-y-3 overflow-y-auto pr-1">
+                <div className="mt-4 max-h-104 space-y-3 overflow-y-auto pr-1">
                   {nudgeLoading ? (
                     <div className="flex items-center gap-3 rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-sm text-neutral-400">
                       <Loader2 className="h-4 w-4 animate-spin text-lime-400" />
@@ -1331,7 +1357,7 @@ useEffect(() => {
               Track all your module requests and their approval status.
             </p>
 
-            <div className="custom-scrollbar mt-6 max-h-[18rem] space-y-3 overflow-y-auto pr-2">
+            <div className="custom-scrollbar mt-6 max-h-72 space-y-3 overflow-y-auto pr-2">
               {courseRequests.length > 0 ? (
                 courseRequests.map((request) => (
                   <div
@@ -1461,7 +1487,7 @@ useEffect(() => {
         <section
           role="status"
           className={[
-            "fixed bottom-4 right-4 z-[72] flex max-w-sm items-center gap-3 rounded-sm border px-4 py-4 text-sm shadow-[0_18px_60px_rgba(0,0,0,0.45)]",
+            "fixed bottom-4 right-4 z-72 flex max-w-sm items-center gap-3 rounded-sm border px-4 py-4 text-sm shadow-[0_18px_60px_rgba(0,0,0,0.45)]",
             actionNotice.tone === "success"
               ? "border-lime-400/20 bg-neutral-950 text-lime-400"
               : "border-rose-400/20 bg-neutral-950 text-rose-200",

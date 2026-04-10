@@ -1,10 +1,139 @@
 const Course = require("../models/Course");
 const CourseRequest = require("../models/CourseRequest");
+const Notification = require("../models/Notification");
 const User = require("../models/User");
 const { fromDecimal128 } = require("../utils/decimal.utils");
 const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
+const {
+  decrementSystemPoolBalance,
+} = require("../utils/system-config");
+
+/**
+ * Retrieves the current user's course requests.
+ * Populates course and requestedBy details.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+exports.getUserRequests = async (req, res, next) => {
+  try {
+    const requests = await CourseRequest.find({
+      "requestedBy._id": req.user._id,
+    })
+      .populate("course", "_id title pointsRequired level")
+      .sort({ requestedAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: requests.map((req) => serializeDocument(req)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateRequestStatus = async (req, res, next) => {
+  const mongoose = require("mongoose");
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (status !== "completed") {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Only completed status updates are supported.",
+        code: "INVALID_STATUS",
+      });
+    }
+
+    const courseRequest = await CourseRequest.findOne({
+      _id: id,
+      "requestedBy._id": req.user._id,
+    }).session(session);
+
+    if (!courseRequest) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Course request not found.",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (courseRequest.status === "completed") {
+      await session.commitTransaction();
+      return res.status(200).json({
+        success: true,
+        data: serializeDocument(courseRequest),
+      });
+    }
+
+    if (courseRequest.status !== "approved") {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Only approved requests can be marked completed.",
+        code: "INVALID_STATE",
+      });
+    }
+
+    const user = await User.findById(req.user._id).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+        code: "USER_NOT_FOUND",
+      });
+    }
+
+    courseRequest.status = "completed";
+    await courseRequest.save({ session });
+
+    user.coursesCompletedCount += 1;
+    if (user.activeCourse?._id?.toString() === courseRequest.course._id.toString()) {
+      user.activeCourse = {
+        _id: null,
+        title: null,
+        pointsRequired: null,
+      };
+    }
+    await user.save({ session });
+
+    await createAuditLog({
+      action: "COURSE_COMPLETED",
+      tag: "CLAIM",
+      actor: req.user,
+      target: user._id,
+      message: `${user.name} marked ${courseRequest.course.title} as completed.`,
+      metadata: {
+        courseRequestId: courseRequest._id,
+        courseId: courseRequest.course._id,
+      },
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      success: true,
+      data: serializeDocument(courseRequest),
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    next(error);
+  } finally {
+    session.endSession();
+  }
+};
 
 function generateFallbackAccessCode(courseId) {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -113,6 +242,7 @@ exports.createRequest = async (req, res, next) => {
         _id: course._id,
         title: course.title,
         pointsRequired: course.pointsRequired,
+        courseUrl: course.courseUrl,
       },
       userBalanceAtRequest: user.points.balance,
       status: "pending",
@@ -299,6 +429,31 @@ exports.approveCourseRequest = async (req, res, next) => {
     };
     await user.save({ session });
 
+    const systemConfig = await decrementSystemPoolBalance(course.pointsRequired, { session });
+
+    await Notification.create(
+      [
+        {
+          userId: user._id,
+          type: "COURSE_APPROVED",
+          channel: "in_app",
+          message: `Status Update: ${course.title} has been approved and is ready to launch.`,
+          metadata: {
+            courseRequestId: courseRequest._id,
+            courseId: course._id,
+            courseTitle: course.title,
+            courseUrl: course.courseUrl,
+            approvedBy: {
+              _id: req.user._id,
+              name: req.user.name,
+            },
+          },
+          sentAt: new Date(),
+        },
+      ],
+      { session },
+    );
+
     await createAuditLog({
       action: "COURSE_APPROVED",
       tag: "GOVERNANCE",
@@ -311,6 +466,22 @@ exports.approveCourseRequest = async (req, res, next) => {
         pointsDeducted: course.pointsRequired,
         pointsDelta: 0,
         reason: `recent_xp_gain:${standingSnapshot.recentXpGain}`,
+        systemPoolBalance: systemConfig.systemPoolBalance,
+      },
+      session,
+    });
+
+    await createAuditLog({
+      action: "SYSTEM_POOL_DECREMENTED",
+      tag: "POOL",
+      actor: req.user,
+      target: user._id,
+      message: `System pool decreased after ${course.title} approval.`,
+      metadata: {
+        courseRequestId: courseRequest._id,
+        courseId: course._id,
+        pointsDelta: course.pointsRequired,
+        systemPoolBalance: systemConfig.systemPoolBalance,
       },
       session,
     });
