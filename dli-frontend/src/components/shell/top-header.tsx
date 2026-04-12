@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Bell, TerminalSquare } from "lucide-react";
@@ -52,6 +53,7 @@ export function TopHeader({
       <div className="flex h-full items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
+          prefetch={true}
           aria-label="Go to the home page"
           className="inline-flex shrink-0 items-center gap-1 text-xl font-black italic tracking-tighter text-white lg:hidden"
         >
@@ -159,21 +161,26 @@ export function TopHeader({
 
         <Link
           href="/account"
+          prefetch={true}
           aria-label="Open account settings"
-          className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
+          className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
         >
           {loading ? (
             <span className="h-3.5 w-3.5 animate-pulse rounded-full bg-lime-300/70" />
           ) : user?.avatarData ? (
-            <img
+            <Image
               src={user.avatarData}
               alt={`${user.name} avatar`}
+              fill
+              sizes="44px"
               className="h-full w-full object-cover"
             />
           ) : user?.avatarUrl ? (
-            <img
+            <Image
               src={user.avatarUrl}
               alt={`${user.name} avatar`}
+              fill
+              sizes="44px"
               className="h-full w-full object-cover"
             />
           ) : (

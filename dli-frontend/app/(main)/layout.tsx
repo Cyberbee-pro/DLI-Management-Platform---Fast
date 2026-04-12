@@ -1,29 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import useSWR, { mutate } from "swr";
 
-import { API_BASE_URL } from "@/config/constants";
+import {
+  catalogueKeys,
+  fetchCatalogueCourses,
+  fetchCatalogueRequests,
+  fetchCatalogueUserBalance,
+} from "@/components/catalogue/catalogue-api";
 import { AppFooter } from "@/components/shell/app-footer";
+import {
+  fetchShellNotifications,
+  fetchShellProfile,
+  shellKeys,
+} from "@/components/shell/shell-api";
 import { MobileNavigation, Sidebar } from "@/components/shell/sidebar";
 import { TopHeader } from "@/components/shell/top-header";
-import type {
-  ShellNotification,
-  ShellNotificationsResponse,
-  ShellProfileResponse,
-  ShellUser,
-} from "@/components/shell/shell.types";
+import { taskKeys, fetchTasksFromApi } from "@/components/task-board/task-api";
+import { UnauthorizedError } from "@/lib/api";
+import { clearStoredToken, useSessionToken } from "@/lib/session";
 import { SHELL_PROFILE_REFRESH_EVENT } from "@/lib/session-events";
-
-function buildProfileEndpoint() {
-  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
-  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/dashboard/me` : "";
-}
-
-function buildNotificationsEndpoint() {
-  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
-  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/notifications?limit=12` : "";
-}
 
 export default function MainLayout({
   children,
@@ -31,186 +29,123 @@ export default function MainLayout({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
-  const pathname = usePathname();
-  const [user, setUser] = useState<ShellUser | null>(null);
-  const [notifications, setNotifications] = useState<ShellNotification[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(true);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { token, ready } = useSessionToken();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
-  const loadShellProfile = useCallback(
-    async (signal?: AbortSignal) => {
-      const token = window.localStorage.getItem("token");
-      const profileEndpoint = buildProfileEndpoint();
-
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
-
-      if (!profileEndpoint) {
-        setError("NEXT_PUBLIC_API_URL is not configured.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(profileEndpoint, {
-          method: "GET",
-          cache: "no-store",
-          signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const payload = (await response.json().catch(() => null)) as ShellProfileResponse | null;
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.localStorage.removeItem("token");
-            router.replace("/login");
-            return;
-          }
-
-          throw new Error(payload?.message ?? `Failed to load node profile (${response.status}).`);
-        }
-
-        if (!payload?.data?.user) {
-          throw new Error("Profile response is missing the authenticated user.");
-        }
-
-        const nextUser: ShellUser = {
-          ...payload.data.user,
-          systemPoolBalance: payload.data.systemConfig?.systemPoolBalance ?? null,
-        };
-
-        setUser(nextUser);
-      } catch (profileError) {
-        if (signal?.aborted) {
-          return;
-        }
-
-        setError(
-          profileError instanceof Error
-            ? profileError.message
-            : "Unable to load the authenticated shell profile.",
-        );
-      } finally {
-        if (!signal?.aborted) {
-          setLoading(false);
-        }
-      }
-    },
-    [router],
+  const {
+    data: user,
+    error: profileError,
+    isLoading: profileLoading,
+  } = useSWR(
+    token ? shellKeys.profile(token) : null,
+    ([, sessionToken]) => fetchShellProfile(sessionToken),
   );
 
-  const loadNotifications = useCallback(
-    async (signal?: AbortSignal) => {
-      const token = window.localStorage.getItem("token");
-      const notificationsEndpoint = buildNotificationsEndpoint();
-
-      if (!token || !notificationsEndpoint) {
-        setNotifications([]);
-        setUnreadNotifications(0);
-        setNotificationsLoading(false);
-        return;
-      }
-
-      try {
-        setNotificationsLoading(true);
-
-        const response = await fetch(notificationsEndpoint, {
-          method: "GET",
-          cache: "no-store",
-          signal,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const payload =
-          (await response.json().catch(() => null)) as ShellNotificationsResponse | null;
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.localStorage.removeItem("token");
-            router.replace("/login");
-            return;
-          }
-
-          throw new Error(payload?.message ?? `Failed to load notifications (${response.status}).`);
-        }
-
-        if (!signal?.aborted) {
-          setNotifications(
-            Array.isArray(payload?.data?.notifications) ? payload.data.notifications : [],
-          );
-          setUnreadNotifications(payload?.data?.unreadCount ?? 0);
-        }
-      } catch (notificationError) {
-        if (!signal?.aborted) {
-          console.error("Unable to load notifications:", notificationError);
-          setNotifications([]);
-          setUnreadNotifications(0);
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setNotificationsLoading(false);
-        }
-      }
-    },
-    [router],
+  const {
+    data: notificationsData,
+    error: notificationsError,
+    isLoading: notificationsLoadingState,
+  } = useSWR(
+    token ? shellKeys.notifications(token) : null,
+    ([, sessionToken]) => fetchShellNotifications(sessionToken),
   );
 
   useEffect(() => {
-    const controller = new AbortController();
-    void loadShellProfile(controller.signal);
-    void loadNotifications(controller.signal);
-    return () => controller.abort();
-  }, [loadNotifications, loadShellProfile]);
-
-  useEffect(() => {
-    function handleShellRefresh() {
-      void loadShellProfile();
-      void loadNotifications();
+    if (!ready) {
+      return;
     }
 
-    window.addEventListener(
-      SHELL_PROFILE_REFRESH_EVENT,
-      handleShellRefresh as EventListener,
-    );
-
-    return () => {
-      window.removeEventListener(
-        SHELL_PROFILE_REFRESH_EVENT,
-        handleShellRefresh as EventListener,
-      );
-    };
-  }, [loadNotifications, loadShellProfile]);
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [ready, router, token]);
 
   useEffect(() => {
-    setMobileNavigationOpen(false);
-  }, [pathname]);
+    const sessionExpired =
+      profileError instanceof UnauthorizedError || notificationsError instanceof UnauthorizedError;
+
+    if (!sessionExpired) {
+      return;
+    }
+
+    clearStoredToken();
+    router.replace("/login");
+  }, [notificationsError, profileError, router]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const sessionToken = token;
+
+    function handleShellRefresh() {
+      void mutate(shellKeys.profile(sessionToken));
+      void mutate(shellKeys.notifications(sessionToken));
+      void mutate(catalogueKeys.userBalance(sessionToken));
+    }
+
+    window.addEventListener(SHELL_PROFILE_REFRESH_EVENT, handleShellRefresh as EventListener);
+
+    return () => {
+      window.removeEventListener(SHELL_PROFILE_REFRESH_EVENT, handleShellRefresh as EventListener);
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const sessionToken = token;
+
+    void mutate(taskKeys.list(sessionToken), fetchTasksFromApi({ token: sessionToken }), {
+      populateCache: true,
+      revalidate: false,
+    });
+    void mutate(catalogueKeys.courses(sessionToken), fetchCatalogueCourses(sessionToken), {
+      populateCache: true,
+      revalidate: false,
+    });
+    void mutate(catalogueKeys.requests(sessionToken), fetchCatalogueRequests(sessionToken), {
+      populateCache: true,
+      revalidate: false,
+    });
+    void mutate(
+      catalogueKeys.userBalance(sessionToken),
+      fetchCatalogueUserBalance(sessionToken),
+      {
+        populateCache: true,
+        revalidate: false,
+      },
+    );
+  }, [token]);
+
+  const shellUser = user ?? null;
+  const notifications = notificationsData?.notifications ?? [];
+  const unreadNotifications = notificationsData?.unreadCount ?? 0;
+  const loading = !ready || (Boolean(token) && !shellUser && profileLoading);
+  const notificationsLoading =
+    !ready || (Boolean(token) && !notificationsData && notificationsLoadingState);
+  const error =
+    profileError instanceof UnauthorizedError
+      ? null
+      : profileError instanceof Error
+        ? profileError.message
+        : null;
 
   return (
     <>
       <Sidebar
-        user={user}
+        user={shellUser}
         loading={loading}
         mobileOpen={mobileNavigationOpen}
         onClose={() => setMobileNavigationOpen(false)}
       />
 
-      <div className="min-h-screen max-w-full overflow-x-hidden lg:pl-72">
+      <div className="min-h-screen max-w-full overflow-x-hidden lg:pl-64">
         <TopHeader
-          user={user}
+          user={shellUser}
           loading={loading}
           notifications={notifications}
           notificationsLoading={notificationsLoading}

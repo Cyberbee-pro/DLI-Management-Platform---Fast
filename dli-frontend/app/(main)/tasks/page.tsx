@@ -10,6 +10,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 
 import {
   OPERATOR_PROFILE,
@@ -25,6 +26,7 @@ import {
   claimTaskRequest,
   fetchTasksFromApi,
   parseSessionUser,
+  taskKeys,
   updateSubmissionRequest,
   requestTransferRequest,
   submitTaskRequest,
@@ -38,6 +40,7 @@ import {
   isTransferApprovedForUser,
 } from "@/components/task-board/task-utils";
 import type { TaskRecord } from "@/components/task-board/types";
+import { clearStoredToken, useSessionToken } from "@/lib/session";
 import { dispatchShellProfileRefresh } from "@/lib/session-events";
 
 const ALL_TASKS_FILTER = "All Tasks";
@@ -86,9 +89,7 @@ function sortTasks(tasks: TaskRecord[], sortBy: TaskSortOption) {
 
 export default function TaskBoardPage() {
   const router = useRouter();
-  const [tasks, setTasks] = useState<TaskRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { token, ready } = useSessionToken();
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [selectedCategory, setSelectedCategory] =
     useState<typeof ALL_TASKS_FILTER | TaskCategory>(ALL_TASKS_FILTER);
@@ -99,61 +100,37 @@ export default function TaskBoardPage() {
   const [busyAction, setBusyAction] = useState<BusyActionState | null>(null);
 
   const handleUnauthorized = useCallback(() => {
-    window.localStorage.removeItem("token");
-    router.push("/login");
+    clearStoredToken();
+    router.replace("/login");
   }, [router]);
 
-  const refreshTasks = useCallback(
-    async (token: string, signal?: AbortSignal) => {
-      const nextTasks = await fetchTasksFromApi({
-        token,
-        signal,
+  const {
+    data: tasksData,
+    error: tasksError,
+    isLoading: tasksLoading,
+    mutate: mutateTasks,
+  } = useSWR(
+    token ? taskKeys.list(token) : null,
+    ([, sessionToken]) =>
+      fetchTasksFromApi({
+        token: sessionToken,
         onUnauthorized: handleUnauthorized,
-      });
-
-      if (nextTasks) {
-        setTasks(nextTasks);
-      }
-    },
-    [handleUnauthorized],
+      }),
   );
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
-    const controller = new AbortController();
+    if (!ready) {
+      return;
+    }
 
     if (!token) {
-      router.push("/login");
-      return () => controller.abort();
+      router.replace("/login");
     }
+  }, [ready, router, token]);
 
-    setSessionUserId(parseSessionUser(token)?._id ?? null);
-
-    async function loadTasks() {
-      try {
-        setLoading(true);
-        setError(null);
-        await refreshTasks(token!, controller.signal);
-      } catch (fetchError) {
-        if (!controller.signal.aborted) {
-          setError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "An unexpected error occurred while loading tasks.",
-          );
-          setTasks([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadTasks();
-
-    return () => controller.abort();
-  }, [refreshTasks, router]);
+  useEffect(() => {
+    setSessionUserId(token ? parseSessionUser(token)?._id ?? null : null);
+  }, [token]);
 
   useEffect(() => {
     if (!actionNotice) {
@@ -166,6 +143,10 @@ export default function TaskBoardPage() {
 
     return () => window.clearTimeout(timeoutId);
   }, [actionNotice]);
+
+  const tasks = useMemo(() => tasksData ?? [], [tasksData]);
+  const loading = !ready || (Boolean(token) && !tasksData && tasksLoading);
+  const error = tasksError instanceof Error ? tasksError.message : null;
 
   const selectedTask = tasks.find((task) => task._id === selectedTaskId) ?? null;
   const submissionTask = tasks.find((task) => task._id === submissionTaskId) ?? null;
@@ -217,8 +198,6 @@ export default function TaskBoardPage() {
     action: (token: string) => Promise<TaskRecord | null>;
     closeSubmission?: boolean;
   }) {
-    const token = window.localStorage.getItem("token");
-
     if (!token) {
       handleUnauthorized();
       return;
@@ -227,19 +206,23 @@ export default function TaskBoardPage() {
     try {
       setBusyAction({ taskId: task._id, type });
       setActionNotice(null);
-      setError(null);
 
       const updatedTask = await action(token);
 
       if (updatedTask) {
-        setTasks((currentTasks) =>
-          currentTasks.map((currentTask) =>
+        await mutateTasks(
+          (currentTasks = []) =>
+            currentTasks.map((currentTask) =>
             currentTask._id === updatedTask._id ? updatedTask : currentTask,
           ),
+          {
+            populateCache: true,
+            revalidate: false,
+          },
         );
       }
 
-      await refreshTasks(token!);
+      await mutateTasks();
 
       if (closeSubmission) {
         setSubmissionTaskId(null);

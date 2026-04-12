@@ -20,6 +20,7 @@ export function AppFooter() {
             <Link
               key={link.label}
               href={link.href}
+              prefetch={true}
               className="font-mono text-[10px] uppercase tracking-[0.3em] transition hover:text-lime-300"
             >
               {link.label}
