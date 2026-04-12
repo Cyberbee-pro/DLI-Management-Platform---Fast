@@ -2,15 +2,16 @@
 
 import { useRef, useState, type RefObject } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, useScroll, useTransform, useSpring, useMotionValueEvent } from "framer-motion";
-import { ArrowRight, ChevronDown } from "lucide-react";
-import BorderGlow from "@/components/BorderGlow";
+import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingUp } from "lucide-react";
 
-// Premium Animations
+// Premium Animations & Backgrounds
 import SplitText from "@/components/SplitText";
 import BlurText from "@/components/BlurText";
-import PixelTransition from "@/components/PixelTransition"; // Ensure this path is correct
+import PixelTransition from "@/components/PixelTransition";
+import MagicBento from "@/components/MagicBento"; 
+import PixelCard from "@/components/PixelCard"; 
+import SoftAurora from "@/components/SoftAurora"; 
 
 const SPRING_CONFIG = {
   stiffness: 100,
@@ -20,7 +21,6 @@ const SPRING_CONFIG = {
 
 const PARALLAX_DISTANCE = 250;
 
-// --- REFINED STAGGERED ANIMATION HOOK ---
 function useStaggeredCluster(targetRef: RefObject<HTMLDivElement | null>) {
   const { scrollYProgress } = useScroll({
     target: targetRef,
@@ -43,33 +43,42 @@ function useStaggeredCluster(targetRef: RefObject<HTMLDivElement | null>) {
   };
 }
 
-// ⚡ THE NEW PIXEL TRANSITION HELPER COMPONENT ⚡
-// This keeps your gallery code clean instead of copying the block 11 times.
+// ⚡ THE REAL PIXEL TRANSITION ⚡
+// Safely wrapped in relative z-[50] so it sits above the Aurora but doesn't get blocked
 function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: string }) {
   return (
-    <PixelTransition
-      firstContent={
-        <Image 
-          src={src} 
-          alt={alt} 
-          fill 
-          sizes="(max-width: 768px) 100vw, 50vw" 
-          className="object-cover" 
-        />
-      }
-      secondContent={
-        <div className="w-full h-full flex items-center justify-center bg-neutral-950 border border-lime-500/20">
-          <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] px-4 text-center">
-            {label}
-          </p>
-        </div>
-      }
-      gridSize={12} // Adjust this for blockier or finer pixels
-      pixelColor="#a3e635" // F.A.S.T. Lime Green pixels!
-      once={false}
-      animationStepDuration={0.3}
-      className="w-full h-full"
-    />
+    <div className="w-full h-full relative z-[50] group cursor-pointer">
+      <PixelTransition
+        firstContent={
+          <img
+            src={src}
+            alt={alt}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        }
+        secondContent={
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "grid",
+              placeItems: "center",
+              backgroundColor: "#0a0a0a",
+              border: "1px solid rgba(163, 230, 53, 0.4)"
+            }}
+          >
+            <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] text-center px-4">
+              {label}
+            </p>
+          </div>
+        }
+        gridSize={12}
+        pixelColor="#a3e635"
+        once={false}
+        animationStepDuration={0.3}
+        className="w-full h-full rounded-2xl overflow-hidden"
+      />
+    </div>
   );
 }
 
@@ -81,7 +90,6 @@ export default function BrilliantLanding() {
 
   const [isHeadlineReady, setIsHeadlineReady] = useState(false);
 
-  // --- SCROLL ANIMATIONS ---
   const { scrollYProgress, scrollY } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
@@ -90,12 +98,10 @@ export default function BrilliantLanding() {
   const smoothProgress = useSpring(scrollYProgress, { ...SPRING_CONFIG });
   const smoothY = useSpring(scrollY, { ...SPRING_CONFIG });
 
-  // ⚡ SHUTTER VAULT ANIMATIONS ⚡
   const shutterY = useTransform(smoothY, [0, 800], ["0%", "-120%"]);
   const logoScale = useTransform(smoothY, [0, 400], [1, 0.85]);
   const logoOpacity = useTransform(smoothY, [0, 500], [1, 0]);
 
-  // HEADLINE TRIGGER LOGIC
   useMotionValueEvent(scrollY, "change", (latest) => {
     if (latest > 400 && !isHeadlineReady) {
       setIsHeadlineReady(true);
@@ -107,15 +113,15 @@ export default function BrilliantLanding() {
   const tMotion = useStaggeredCluster(teamRef);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative bg-black text-white selection:bg-lime-500/30 font-sans overflow-clip"
-    >
-      {/* 1. THE SHUTTER (Fixed Overlay Vault Door) */}
-      <motion.div
-        style={{ y: shutterY }}
-        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)]"
-      >
+    <div ref={containerRef} className="relative bg-black text-white selection:bg-lime-500/30 font-sans overflow-clip min-h-screen">
+      
+      {/* ⚡ GLOBAL EFFECTS (Aurora Only) ⚡ */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none opacity-50">
+        <SoftAurora speed={0.6} scale={1.5} brightness={1} color1="#f7f7f7" color2="#e100ff" noiseFrequency={2.5} noiseAmplitude={1} bandHeight={0.5} bandSpread={1} octaveDecay={0.1} layerOffset={0} colorSpeed={1} enableMouseInteraction mouseInfluence={0.25} />
+      </div>
+
+      {/* 1. THE SHUTTER */}
+      <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)]">
         <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center">
           <div className="mb-6">
             <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -123,7 +129,6 @@ export default function BrilliantLanding() {
               <rect x="75" y="20" width="5" height="60" fill="#a3e635" />
             </svg>
           </div>
-
           <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8">
             <SplitText text="FAST" className="text-5xl md:text-8xl font-black tracking-tighter italic" delay={40} duration={1.2} ease="power3.out" splitType="chars" from={{ opacity: 0, y: 40 }} to={{ opacity: 1, y: 0 }} />
             <span className="text-5xl md:text-8xl font-black tracking-tighter not-italic text-neutral-800">
@@ -131,7 +136,6 @@ export default function BrilliantLanding() {
             </span>
             <SplitText text="NVIDIA" className="text-5xl md:text-8xl font-black tracking-tighter italic" delay={60} duration={1.2} ease="power3.out" splitType="chars" from={{ opacity: 0, y: 40 }} to={{ opacity: 1, y: 0 }} />
           </div>
-
           <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold">Initiate Scroll Override</span>
             <ChevronDown size={16} />
@@ -139,18 +143,15 @@ export default function BrilliantLanding() {
         </motion.div>
       </motion.div>
 
-      {/* ⚡ SCROLL RUNWAY SPACER ⚡ */}
       <div className="h-[60vh] md:h-[80vh] w-full" />
 
       {/* 2. THE TRANSITION & EVENT GALLERY */}
       <section className="relative px-6 pb-20 md:pb-32 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
         
-        {/* STICKY HEADLINE */}
         <div className="relative lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0">
           <p className="text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
             {"// Operational Excellence"}
           </p>
-          
           <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] flex flex-col gap-2 min-h-[160px] md:min-h-[220px]">
             {isHeadlineReady && (
               <>
@@ -160,11 +161,9 @@ export default function BrilliantLanding() {
               </>
             )}
           </h2>
-
           <p className="text-lg text-neutral-500 max-w-md font-light leading-relaxed">
             From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
           </p>
-          
           <Link href="/login" className="inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white">
             <div className="flex text-black hover:text-white items-center gap-2">
               AUTHENTICATE TERMINAL <ArrowRight size={18} />
@@ -172,60 +171,56 @@ export default function BrilliantLanding() {
           </Link>
         </div>
 
-        {/* OVERLAPPING STICKY COLLAGE */}
         <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
           
-          {/* ---------------- 1. FASTATHON CLUSTER ---------------- */}
           <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
             <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative">
-                <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] rounded-2xl overflow-hidden shadow-2xl border border-neutral-900/50">
+                <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl">
                   <EventPixelCard src="/events/Fastathon/fst1.JPG" alt="Fastathon" label="2026 Fastathon" />
                 </motion.div>
-                <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 rounded-2xl overflow-hidden shadow-2xl border border-neutral-800">
+                <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl">
                   <EventPixelCard src="/events/Fastathon/fst3.JPG" alt="Fastathon" label="Node Teams" />
                 </motion.div>
-                <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 rounded-2xl overflow-hidden shadow-2xl border border-neutral-900/50">
+                <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 shadow-2xl">
                   <EventPixelCard src="/events/Fastathon/fst2.JPG" alt="Fastathon" label="Core Devs" />
                 </motion.div>
-                <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 rounded-2xl overflow-hidden shadow-2xl border border-neutral-900">
+                <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl">
                   <EventPixelCard src="/events/Fastathon/fst6.jpg" alt="Fastathon" label="Judging Phase" />
                 </motion.div>
               </motion.div>
             </div>
           </div>
 
-          {/* ---------------- 2. WORKSHOP CLUSTER ---------------- */}
           <div ref={workshopRef} className="relative h-[80vh] lg:h-[100vh]">
             <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative">
-                <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] rounded-2xl overflow-hidden shadow-2xl border border-neutral-900/50">
+                <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl">
                   <EventPixelCard src="/events/workshops/ragevn7.JPG" alt="NVIDIA Workshop" label="NVIDIA DLI" />
                 </motion.div>
-                <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 rounded-2xl overflow-hidden shadow-2xl border border-neutral-800">
+                <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl">
                   <EventPixelCard src="/events/workshops/ragevn4.JPG" alt="NVIDIA Workshop" label="RAG Systems" />
                 </motion.div>
-                <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 rounded-2xl overflow-hidden shadow-2xl border border-neutral-900/50">
+                <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl">
                   <EventPixelCard src="/events/workshops/ragevn1.JPG" alt="NVIDIA Workshop" label="LLM Training" />
                 </motion.div>
               </motion.div>
             </div>
           </div>
 
-          {/* ---------------- 3. TEAMS CLUSTER ---------------- */}
           <div ref={teamRef} className="relative h-[80vh] lg:h-[100vh]">
             <div className="sticky top-40 z-30 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative">
-                <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] rounded-2xl overflow-hidden shadow-2xl border border-neutral-900/50">
+                <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] shadow-2xl">
                   <EventPixelCard src="/events/Team/tm1.jpg" alt="Team" label="Node Alpha" />
                 </motion.div>
-                <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 rounded-2xl overflow-hidden shadow-2xl border border-neutral-800">
+                <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 shadow-2xl">
                   <EventPixelCard src="/events/Team/tm3.JPG" alt="Team" label="Core Infra" />
                 </motion.div>
-                <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 rounded-2xl overflow-hidden shadow-2xl border border-neutral-900/50">
+                <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 shadow-2xl">
                   <EventPixelCard src="/events/Team/tm2.JPG" alt="Team" label="Frontend Sec" />
                 </motion.div>
-                <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 rounded-2xl overflow-hidden shadow-2xl border border-neutral-900">
+                <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 shadow-2xl">
                   <EventPixelCard src="/events/Team/tm4.JPG" alt="Team" label="Platform Ops" />
                 </motion.div>
               </motion.div>
@@ -234,43 +229,134 @@ export default function BrilliantLanding() {
         </div>
       </section>
 
-      {/* 3. BENTO ECOSYSTEM */}
-      <section className="px-6 py-20 md:py-32 bg-neutral-950">
+      {/* 3. ⚡ CLICKABLE BENTO ECOSYSTEM ⚡ */}
+      <section className="px-6 py-20 md:py-32 relative z-10 bg-transparent">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-12 md:mb-24">
-            <h3 className="text-5xl md:text-8xl font-bold tracking-tighter italic">
-              The <span className="not-italic">Ecosystem.</span>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <h3 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
+              The Ecosystem.
             </h3>
+            <p className="text-neutral-400 max-w-sm text-sm">
+              Integrated tools designed for the next generation of artificial intelligence specialists.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/tasks" className="md:col-span-2">
-              <BorderGlow borderRadius={24} glowColor="163 230 53" glowRadius={100} glowIntensity={1.5}>
-                <div className="group h-full min-h-[300px] md:aspect-video bg-neutral-900 rounded-3xl p-8 lg:p-12 flex flex-col justify-end border border-white/5 transition-all duration-400 hover:bg-lime-500/15">
-                  <h4 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Task Board</h4>
-                  <p className="text-neutral-500 max-w-sm group-hover:text-white text-sm md:text-base">
-                    Live bounty system for deep learning infrastructure projects.
-                  </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
+            
+            {/* CARD 1: Task Board */}
+            <Link href="/tasks" className="md:col-span-2 block group">
+              <MagicBento 
+                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col justify-between"
+                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
+              >
+                <div className="flex justify-between items-start">
+                  <ClipboardList className="h-8 w-8 text-lime-400 mb-4" />
+                  <span className="text-[10px] font-mono border border-lime-500/50 text-lime-400 bg-lime-500/10 px-3 py-1.5 rounded-full uppercase tracking-widest">
+                    Hot Bounties Active
+                  </span>
                 </div>
-              </BorderGlow>
+                <div>
+                  <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Task Board</h4>
+                  <p className="text-neutral-400 text-sm max-w-sm mb-6">
+                    Gamified challenges designed to test your technical limits and earn exclusive F.A.S.T. points.
+                  </p>
+                  <div className="space-y-4 max-w-md">
+                    <div className="flex justify-between items-center pl-4 border-l-2 border-lime-400">
+                      <span className="text-sm text-zinc-300">CUDA Optimization Sprint</span>
+                      <span className="text-xs font-mono text-lime-400">800 PTS</span>
+                    </div>
+                    <div className="flex justify-between items-center pl-4 border-l-2 border-neutral-800">
+                      <span className="text-sm text-zinc-500">Omniverse Scene Synthesis</span>
+                      <span className="text-xs font-mono text-zinc-500">1200 PTS</span>
+                    </div>
+                  </div>
+                </div>
+              </MagicBento>
             </Link>
 
-            <Link href="/login">
-              <BorderGlow borderRadius={24} glowColor="0 0 0" glowRadius={80}>
-                <div className="h-full min-h-[300px] md:aspect-square bg-lime-500 rounded-3xl p-8 lg:p-12 flex flex-col justify-between text-black transition-transform duration-300 hover:scale-[0.98]">
-                  <ArrowRight size={40} className="-rotate-45 md:h-12 md:w-12" />
-                  <h4 className="text-2xl md:text-3xl font-bold tracking-tight">
-                    Access <br /> Registry.
-                  </h4>
-                </div>
-              </BorderGlow>
+            {/* CARD 2: Course Catalogue */}
+            <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group">
+              <MagicBento 
+                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col"
+                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
+              >
+                <GraduationCap className="h-8 w-8 text-lime-400 mb-6" />
+                <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
+                <p className="text-neutral-400 text-sm mb-8">
+                  Official NVIDIA DLI training modules tailored for the F.A.S.T. curriculum.
+                </p>
+                <ul className="space-y-6 flex-1">
+                  {['COMPUTER VISION', 'GENERATIVE AI', 'JETSON EDGE AI'].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-xs font-mono text-zinc-400 uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.8)]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </MagicBento>
             </Link>
+
+            {/* CARD 3: Connect (Now Clickable) */}
+            <Link href="/registry" className="md:col-span-1 block group cursor-pointer">
+              <MagicBento 
+                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col justify-between"
+                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
+              >
+                <div>
+                  <Users className="h-8 w-8 text-lime-400 mb-4" />
+                  <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Connect</h4>
+                  <p className="text-neutral-400 text-sm">
+                    Connect with your teammates and friends in the club.
+                  </p>
+                </div>
+                <div className="relative w-full h-16">
+                  {/* The PixelCard hover effect will still work inside the link! */}
+                  <PixelCard variant="pink">
+                    <div className="absolute inset-0 flex items-center justify-center gap-2">
+                       <div className="flex -space-x-2">
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">P1</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">P2</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">P3</div>
+                       </div>
+                       <span className="text-xs font-mono text-lime-400">+24</span>
+                    </div>
+                  </PixelCard>
+                </div>
+              </MagicBento>
+            </Link>
+
+            {/* CARD 4: Dashboard */}
+            <Link href="/dashboard" className="md:col-span-1 block group">
+              <MagicBento 
+                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col justify-between"
+                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
+              >
+                <div>
+                  <TrendingUp className="h-8 w-8 text-lime-400 mb-4" />
+                  <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Dashboard</h4>
+                  <p className="text-neutral-400 text-sm">
+                    View/Manage all your platform data.
+                  </p>
+                </div>
+                <div className="w-full">
+                  <div className="flex items-end gap-1.5 h-20 w-full">
+                    {[30, 45, 60, 100, 75, 40, 50].map((h, i) => (
+                      <div key={i} className={`flex-1 rounded-t-sm transition-all duration-500 ${i === 3 ? 'bg-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.5)]' : 'bg-neutral-800'}`} style={{ height: `${h}%` }} />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-3 text-[9px] font-mono uppercase text-neutral-500">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                  </div>
+                </div>
+              </MagicBento>
+            </Link>
+
           </div>
         </div>
       </section>
 
       {/* 4. FOOTER */}
-      <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left">
+      <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black">
         <div className="flex gap-8">
           <Link href="#" className="hover:text-white">GitHub</Link>
           <Link href="#" className="hover:text-white">Discord</Link>
