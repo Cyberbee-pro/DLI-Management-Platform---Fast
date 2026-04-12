@@ -1,0 +1,74 @@
+[
+  {
+    "title": "Generative AI: Large Language Model Optimization",
+    "description": "Deep dive into fine-tuning techniques for LLMs. Learn to implement PEFT and LoRA for domain-specific language models using NVIDIA hardware.",
+    "pointsRequired": "3500",
+    "imageUrl": "/uploads/courses/gen-ai-opt.jpg",
+    "courseUrl": "https://learn.nvidia.com/courses/llm-optimization",
+    "category": "AI/ML",
+    "level": "Advanced",
+    "provider": "NVIDIA",
+    "inventoryCount": 25,
+    "isActive": true
+  },
+  {
+    "title": "Computer Vision for Industrial Inspection",
+    "description": "Implement real-time defect detection systems. Learn to use the DeepStream SDK for building high-throughput video analytics pipelines.",
+    "pointsRequired": "1500",
+    "imageUrl": "/uploads/courses/cv-industrial.jpg",
+    "courseUrl": "https://learn.nvidia.com/courses/cv-industrial",
+    "category": "Computer Vision",
+    "level": "Intermediate",
+    "provider": "NVIDIA",
+    "inventoryCount": 50,
+    "isActive": true
+  },
+  {
+    "title": "Introduction to Omniverse and 3D Workflows",
+    "description": "An entry-level guide to building collaborative 3D worlds. Explore USD (Universal Scene Description) and real-time physics simulation.",
+    "pointsRequired": "450",
+    "imageUrl": "/uploads/courses/omniverse-intro.jpg",
+    "courseUrl": "https://learn.nvidia.com/courses/omniverse-intro",
+    "category": "Simulation",
+    "level": "Beginner",
+    "provider": "NVIDIA",
+    "inventoryCount": 100,
+    "isActive": true
+  },
+  {
+    "title": "High Performance Computing with CUDA Python",
+    "description": "Bridge the gap between Python ease-of-use and CUDA performance. Learn to write custom kernels using Numba for massively parallel processing.",
+    "pointsRequired": "1200",
+    "imageUrl": "/uploads/courses/cuda-python.jpg",
+    "courseUrl": "https://learn.nvidia.com/courses/cuda-python",
+    "category": "Research",
+    "level": "Intermediate",
+    "provider": "NVIDIA",
+    "inventoryCount": 40,
+    "isActive": true
+  },
+  {
+    "title": "Reinforcement Learning for Robotics",
+    "description": "Master the Isaac Sim environment. Train autonomous agents to navigate complex environments using Proximal Policy Optimization (PPO).",
+    "pointsRequired": "4000",
+    "imageUrl": "/uploads/courses/rl-robotics.jpg",
+    "courseUrl": "https://learn.nvidia.com/courses/rl-robotics",
+    "category": "AI/ML",
+    "level": "Advanced",
+    "provider": "NVIDIA",
+    "inventoryCount": 15,
+    "isActive": true
+  },
+  {
+    "title": "Ethical AI and Bias Mitigation",
+    "description": "Essential framework for understanding algorithmic bias. Learn practical techniques for auditing models and ensuring fairness in production AI.",
+    "pointsRequired": "250",
+    "imageUrl": "/uploads/courses/ai-ethics.jpg",
+    "courseUrl": "https://learn.nvidia.com/courses/ai-ethics",
+    "category": "Ethics",
+    "level": "Beginner",
+    "provider": "DeepLearning.AI",
+    "inventoryCount": 300,
+    "isActive": true
+  }
+]
