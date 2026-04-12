@@ -5,6 +5,7 @@ const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
+const { getDatabaseName, getMongoUri } = require("./config/db");
 
 if (!process.env.MONGODB_URI) {
   console.error(
@@ -128,13 +129,16 @@ let server;
  */
 async function startServer() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+    const connection = await mongoose.connect(getMongoUri(), {
+      dbName: getDatabaseName(),
       maxPoolSize: 100,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       family: 4
     });
-    console.log("MongoDB connected");
+    console.log(
+      `[DB] Mongoose connected to database "${connection.connection.name || getDatabaseName()}"`
+    );
 
     server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

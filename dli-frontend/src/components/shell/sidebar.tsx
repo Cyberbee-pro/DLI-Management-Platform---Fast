@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
@@ -62,7 +63,7 @@ function NavigationLink({
   }
 
   return (
-    <Link href={item.href} onClick={onNavigate} className={className}>
+    <Link href={item.href} prefetch={true} onClick={onNavigate} className={className}>
       <item.icon className={iconClassName} />
       <span>{item.label}</span>
     </Link>
@@ -87,6 +88,18 @@ export function Sidebar({
     (item) => item.href !== "/analytics" || user?.role === "admin",
   );
 
+  useEffect(() => {
+    for (const item of visiblePrimaryNavItems) {
+      router.prefetch(item.href);
+    }
+
+    for (const item of SECONDARY_NAV_ITEMS) {
+      if (item.accent !== "danger") {
+        router.prefetch(item.href);
+      }
+    }
+  }, [router, visiblePrimaryNavItems]);
+
   function handleLogout() {
     onClose?.();
     window.localStorage.removeItem("token");
@@ -107,7 +120,7 @@ export function Sidebar({
       <aside
         id="mobile-sidebar"
         className={[
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/5 bg-black/90 backdrop-blur transition-transform duration-200 ease-out",
+          "fixed inset-y-0 left-0 z-50 flex w-64 min-w-64 max-w-64 flex-col overflow-y-auto overflow-x-hidden border-r border-white/5 bg-black/90 backdrop-blur transition-transform duration-200 ease-out",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           "lg:translate-x-0",
         ].join(" ")}
@@ -115,6 +128,7 @@ export function Sidebar({
         <div className="relative flex h-20 items-center justify-center border-b border-(--line) px-7">
           <Link
             href="/"
+            prefetch={true}
             aria-label="Go to the home page"
             onClick={onClose}
             className="inline-flex items-center gap-1 text-xl font-black italic tracking-tighter text-white"
@@ -133,7 +147,7 @@ export function Sidebar({
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-y-auto px-5 py-6">
+        <div className="flex min-h-0 flex-1 flex-col px-5 py-6">
           <section className="panel-surface rounded-sm border border-(--line) px-5 py-5">
             {loading ? (
               <div className="animate-pulse">
@@ -151,8 +165,8 @@ export function Sidebar({
               </>
             )}
 
-            <div className="mt-6 flex items-end justify-between gap-3 border-t border-(--line) pt-5">
-              <div>
+            <div className="mt-6 flex min-w-0 items-end justify-between gap-3 border-t border-(--line) pt-5">
+              <div className="min-w-0">
                 <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
                   Available XP
                 </p>
@@ -165,7 +179,7 @@ export function Sidebar({
                 )}
               </div>
 
-              <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-xs text-lime-300">
+              <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-lime-400/25 bg-lime-400/10 font-mono text-xs text-lime-300">
                 {loading ? (
                   "..."
                 ) : user?.avatarData ? (
@@ -173,14 +187,16 @@ export function Sidebar({
                     src={user.avatarData}
                     alt={`${user.name} avatar`}
                     fill
-                    className="object-cover"
+                    sizes="48px"
+                    className="h-full w-full object-cover"
                   />
                 ) : user?.avatarUrl ? (
                   <Image
                     src={user.avatarUrl}
                     alt={`${user.name} avatar`}
                     fill
-                    className="object-cover"
+                    sizes="48px"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
                   avatarLabel

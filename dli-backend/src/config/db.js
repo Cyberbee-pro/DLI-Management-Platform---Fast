@@ -2,6 +2,7 @@ const { MongoClient } = require('mongodb');
 
 const DEFAULT_RETRY_ATTEMPTS = Number(process.env.MONGODB_MAX_RETRIES || 5);
 const DEFAULT_RETRY_DELAY_MS = Number(process.env.MONGODB_RETRY_DELAY_MS || 2000);
+const DEFAULT_DATABASE_NAME = process.env.DATABASE_NAME || 'dli_platform_neo';
 
 let client = null;
 let db = null;
@@ -14,14 +15,21 @@ function getMongoUri() {
     throw new Error('MONGODB_URI is required');
   }
 
-  return process.env.MONGODB_URI;
+  const uri = new URL(process.env.MONGODB_URI);
+  const databaseNameFromUri = uri.pathname.replace(/^\//, '');
+
+  if (!databaseNameFromUri) {
+    uri.pathname = `/${DEFAULT_DATABASE_NAME}`;
+  }
+
+  return uri.toString();
 }
 
 function getDatabaseName() {
   const uri = new URL(getMongoUri());
   const databaseNameFromUri = uri.pathname.replace(/^\//, '');
 
-  return databaseNameFromUri || process.env.DATABASE_NAME || 'bounty_board';
+  return databaseNameFromUri || DEFAULT_DATABASE_NAME;
 }
 
 function createClient() {
@@ -44,6 +52,7 @@ async function attemptConnection(attempt = 1) {
   try {
     await client.connect();
     db = client.db(getDatabaseName());
+    console.log(`[DB] MongoDB connected to database "${db.databaseName}"`);
     return db;
   } catch (error) {
     await client.close().catch(() => {});
@@ -148,4 +157,11 @@ async function closeDB(reason = 'manual shutdown') {
   return shutdownPromise;
 }
 
-module.exports = { connectDB, getDB, getClient, closeDB };
+module.exports = {
+  connectDB,
+  getDB,
+  getClient,
+  closeDB,
+  getMongoUri,
+  getDatabaseName,
+};

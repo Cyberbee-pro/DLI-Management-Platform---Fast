@@ -23,6 +23,10 @@ export interface SessionUser {
   name?: string;
 }
 
+export const taskKeys = {
+  list: (token: string) => ["tasks", token] as const,
+};
+
 function sanitizeBaseUrl() {
   return API_BASE_URL.replace(/\/$/, "");
 }
@@ -79,7 +83,7 @@ export async function fetchTasksFromApi({
 }: {
   token: string;
   signal?: AbortSignal;
-  onUnauthorized: () => void;
+  onUnauthorized?: () => void;
 }) {
   const taskEndpoint = buildTasksEndpoint();
 
@@ -101,8 +105,8 @@ export async function fetchTasksFromApi({
 
   if (!response.ok) {
     if (response.status === 401) {
-      onUnauthorized();
-      return null;
+      onUnauthorized?.();
+      return [];
     }
 
     throw new Error(payload?.message ?? `Failed to load tasks (${response.status}).`);

@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
+import { AppSWRProvider } from "@/components/providers/swr-provider";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -20,7 +21,7 @@ export default function RootLayout({
     // Added "dark" class here to force the theme regardless of system settings
     <html lang="en" className={cn("h-full bg-black dark", geist.variable)}>
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
-        {children}
+        <AppSWRProvider>{children}</AppSWRProvider>
       </body>
     </html>
   );

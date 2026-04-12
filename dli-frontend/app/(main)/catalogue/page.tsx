@@ -4,54 +4,22 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { AlertCircle, CheckCircle2, Clock, Loader2, Lock, Star, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 
-import { API_BASE_URL } from "@/config/constants";
-
-interface Course {
-  _id: string;
-  title: string;
-  description: string;
-  level: "Beginner" | "Intermediate" | "Advanced";
-  provider: string;
-  imageUrl: string;
-  courseUrl?: string | null;
-  pointsRequired: string | number;
-  inventoryCount: number;
-  isActive: boolean;
-}
-
-interface CourseRequest {
-  _id: string;
-  status: "pending" | "approved" | "rejected" | "completed";
-  requestedAt: string;
-  processedAt?: string | null;
-  redemptionCode?: string | null;
-  course: {
-    _id: string;
-    title: string;
-    courseUrl?: string | null;
-  };
-}
-
-interface DecodedToken {
-  _id: string;
-  role: string;
-  iat: number;
-  exp: number;
-}
+import {
+  catalogueKeys,
+  fetchCatalogueCourses,
+  fetchCatalogueRequests,
+  fetchCatalogueUserBalance,
+  markCatalogueRequestCompleted,
+  requestCatalogueCourseAccess,
+  type CourseRequest,
+} from "@/components/catalogue/catalogue-api";
+import { UnauthorizedError } from "@/lib/api";
+import { clearStoredToken, useSessionToken } from "@/lib/session";
+import { dispatchShellProfileRefresh } from "@/lib/session-events";
 
 type CatalogueCourseState = "none" | "pending" | "approved" | "completed";
-
-function decodeToken(token: string): DecodedToken | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const decoded = JSON.parse(atob(parts[1]));
-    return decoded as DecodedToken;
-  } catch {
-    return null;
-  }
-}
 
 function getDifficultyColor(level: string): string {
   switch (level) {
@@ -110,177 +78,113 @@ function getStatusLabel(status: string): string {
 }
 
 export default function CataloguePage() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [myRequests, setMyRequests] = useState<CourseRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userBalance, setUserBalance] = useState<number>(0);
+  const router = useRouter();
+  const { token, ready } = useSessionToken();
   const [tab, setTab] = useState<"available" | "inventory">("available");
   const [requestingCourses, setRequestingCourses] = useState<Set<string>>(new Set());
   const [completingRequests, setCompletingRequests] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  const router = useRouter();
 
-  const loadUserRequests = useCallback(
-    async (signal?: AbortSignal) => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      try {
-        const endpoint = `${API_BASE_URL.replace(/\/$/, "")}/requests`;
-        const response = await fetch(endpoint, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-          signal,
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load requests");
-        }
-
-        const data = await response.json();
-
-        if (!signal?.aborted) {
-          setMyRequests(Array.isArray(data.data) ? data.data : []);
-        }
-      } catch (err) {
-        if (!signal?.aborted) {
-          console.error("Failed to load requests:", err);
-        }
-      }
-    },
-    []
+  const {
+    data: coursesData,
+    error: coursesError,
+    isLoading: coursesLoading,
+  } = useSWR(
+    token ? catalogueKeys.courses(token) : null,
+    ([, sessionToken]) => fetchCatalogueCourses(sessionToken),
   );
 
-  // Fetch user info from token
+  const {
+    data: myRequestsData,
+    error: requestsError,
+    isLoading: requestsLoading,
+    mutate: mutateRequests,
+  } = useSWR(
+    token ? catalogueKeys.requests(token) : null,
+    ([, sessionToken]) => fetchCatalogueRequests(sessionToken),
+  );
+
+  const {
+    data: userBalanceData,
+    error: userBalanceError,
+    isLoading: userBalanceLoading,
+    mutate: mutateUserBalance,
+  } = useSWR(
+    token ? catalogueKeys.userBalance(token) : null,
+    ([, sessionToken]) => fetchCatalogueUserBalance(sessionToken),
+  );
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    if (!ready) {
+      return;
+    }
+
     if (!token) {
-      router.push("/login");
+      router.replace("/login");
+    }
+  }, [ready, router, token]);
+
+  useEffect(() => {
+    const sessionExpired =
+      coursesError instanceof UnauthorizedError ||
+      requestsError instanceof UnauthorizedError ||
+      userBalanceError instanceof UnauthorizedError;
+
+    if (!sessionExpired) {
       return;
     }
 
-    const decoded = decodeToken(token);
-    if (!decoded) {
-      router.push("/login");
-      return;
-    }
-  }, [router]);
+    clearStoredToken();
+    router.replace("/login");
+  }, [coursesError, requestsError, router, userBalanceError]);
 
-  // Fetch courses and user balance
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const courses = coursesData ?? [];
+  const myRequests = myRequestsData ?? [];
+  const userBalance = userBalanceData ?? 0;
+  const loading =
+    !ready ||
+    (Boolean(token) &&
+      ((!coursesData && coursesLoading) ||
+        (!myRequestsData && requestsLoading) ||
+        (userBalanceData === undefined && userBalanceLoading)));
+  const error =
+    (coursesError instanceof Error && !(coursesError instanceof UnauthorizedError)
+      ? coursesError.message
+      : null) ??
+    (requestsError instanceof Error && !(requestsError instanceof UnauthorizedError)
+      ? requestsError.message
+      : null) ??
+    (userBalanceError instanceof Error && !(userBalanceError instanceof UnauthorizedError)
+      ? userBalanceError.message
+      : null);
 
-    const controller = new AbortController();
-    const coursesEndpoint = `${API_BASE_URL.replace(/\/$/, "")}/courses`;
-    const userEndpoint = `${API_BASE_URL.replace(/\/$/, "")}/users/me`;
-
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [coursesRes, userRes] = await Promise.all([
-          fetch(coursesEndpoint, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-            signal: controller.signal,
-          }),
-          fetch(userEndpoint, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-            signal: controller.signal,
-          }),
-        ]);
-
-        if (!coursesRes.ok) {
-          throw new Error("Failed to load courses");
-        }
-
-        if (!userRes.ok) {
-          throw new Error("Failed to load user data");
-        }
-
-        const coursesData = await coursesRes.json();
-        const userData = await userRes.json();
-
-        if (!controller.signal.aborted) {
-          setCourses(coursesData.data?.courses || []);
-          const balance =
-            typeof userData.data?.user?.points?.balance === "number"
-              ? userData.data.user.points.balance
-              : Number.parseFloat(userData.data?.user?.points?.balance ?? "0");
-          setUserBalance(balance);
-        }
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err.message : "Failed to load data");
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadData();
-    return () => controller.abort();
-  }, []);
-
-  // Fetch user's course requests
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadUserRequests(controller.signal);
-    return () => controller.abort();
-  }, [loadUserRequests]);
-
-  // Request access to a course
   const handleRequestAccess = useCallback(
     async (courseId: string) => {
-      const token = localStorage.getItem("token");
       if (!token) {
-        router.push("/login");
+        router.replace("/login");
         return;
       }
 
       setRequestingCourses((prev) => new Set(prev).add(courseId));
 
       try {
-        const endpoint = `${API_BASE_URL.replace(/\/$/, "")}/requests`;
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            courseId,
-          }),
-        });
+        const createdRequest = await requestCatalogueCourseAccess(token, courseId);
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to request access");
+        if (createdRequest) {
+          await mutateRequests(
+            (currentRequests = []) => [
+              createdRequest,
+              ...currentRequests.filter((request) => request._id !== createdRequest._id),
+            ],
+            {
+              populateCache: true,
+              revalidate: false,
+            },
+          );
         }
 
-        if (data.data) {
-          setMyRequests((prev) => [data.data as CourseRequest, ...prev]);
-        } else {
-          await loadUserRequests();
-        }
-
-        // Refresh my inventory
+        await Promise.all([mutateRequests(), mutateUserBalance()]);
+        dispatchShellProfileRefresh();
         setTab("inventory");
         alert("Course request submitted successfully!");
       } catch (err) {
@@ -293,7 +197,7 @@ export default function CataloguePage() {
         });
       }
     },
-    [loadUserRequests, router]
+    [mutateRequests, mutateUserBalance, router, token],
   );
 
   const formatXP = (xp: string | number): string => {
@@ -347,38 +251,30 @@ export default function CataloguePage() {
   );
 
   const handleMarkCompleted = useCallback(async (requestId: string) => {
-    const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login");
+      router.replace("/login");
       return;
     }
 
     setCompletingRequests((prev) => new Set(prev).add(requestId));
 
     try {
-      const endpoint = `${API_BASE_URL.replace(/\/$/, "")}/requests/${requestId}`;
-      const response = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const updatedRequest = await markCatalogueRequestCompleted(token, requestId);
+
+      await mutateRequests(
+        (currentRequests = []) =>
+          currentRequests.map((request) =>
+            request._id === requestId
+              ? updatedRequest ?? { ...request, status: "completed" }
+              : request,
+          ),
+        {
+          populateCache: true,
+          revalidate: false,
         },
-        body: JSON.stringify({
-          status: "completed",
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to mark course completed");
-      }
-
-      setMyRequests((prev) =>
-        prev.map((request) =>
-          request._id === requestId ? { ...request, status: "completed" } : request
-        )
       );
+
+      await mutateRequests();
     } catch (completionError) {
       alert(
         completionError instanceof Error
@@ -392,7 +288,7 @@ export default function CataloguePage() {
         return next;
       });
     }
-  }, [router]);
+  }, [mutateRequests, router, token]);
 
   return (
     <div className="space-y-6 bg-black pb-4 font-sans">
