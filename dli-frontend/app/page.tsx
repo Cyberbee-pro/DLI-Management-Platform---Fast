@@ -164,8 +164,8 @@ export default function BrilliantLanding() {
           <p className="text-lg text-neutral-500 max-w-md font-light leading-relaxed">
             From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
           </p>
-          <Link href="/login" className="inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white">
-            <div className="flex text-black hover:text-white items-center gap-2">
+          <Link href="/login" className="group inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white">
+            <div className="flex text-black group-hover:text-white items-center gap-2">
               AUTHENTICATE TERMINAL <ArrowRight size={18} />
             </div>
           </Link>
@@ -186,7 +186,7 @@ export default function BrilliantLanding() {
                   <EventPixelCard src="/events/Fastathon/fst2.JPG" alt="Fastathon" label="Core Devs" />
                 </motion.div>
                 <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl">
-                  <EventPixelCard src="/events/Fastathon/fst6.jpg" alt="Fastathon" label="Judging Phase" />
+                  <EventPixelCard src="/events/Fastathon/fst6.jpg" alt="Fastathon" label="Auction Phase" />
                 </motion.div>
               </motion.div>
             </div>
@@ -196,10 +196,10 @@ export default function BrilliantLanding() {
             <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative">
                 <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl">
-                  <EventPixelCard src="/events/workshops/ragevn7.JPG" alt="NVIDIA Workshop" label="NVIDIA DLI" />
+                  <EventPixelCard src="/events/workshops/ragevn7.JPG" alt="NVIDIA Workshop" label="Rag learners" />
                 </motion.div>
                 <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl">
-                  <EventPixelCard src="/events/workshops/ragevn4.JPG" alt="NVIDIA Workshop" label="RAG Systems" />
+                  <EventPixelCard src="/events/workshops/ragevn4.JPG" alt="NVIDIA Workshop" label="Nvidia professional" />
                 </motion.div>
                 <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl">
                   <EventPixelCard src="/events/workshops/ragevn1.JPG" alt="NVIDIA Workshop" label="LLM Training" />
@@ -277,12 +277,12 @@ export default function BrilliantLanding() {
             {/* CARD 2: Course Catalogue */}
             <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group">
               <MagicBento 
-                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col"
+                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col gap-5 "
                 glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
               >
-                <GraduationCap className="h-8 w-8 text-lime-400 mb-6" />
+                <GraduationCap className="h-8 w-8 text-lime-400 " />
                 <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
-                <p className="text-neutral-400 text-sm mb-8">
+                <p className="text-neutral-400 text-sm ">
                   Official NVIDIA DLI training modules tailored for the F.A.S.T. curriculum.
                 </p>
                 <ul className="space-y-6 flex-1">
@@ -293,13 +293,24 @@ export default function BrilliantLanding() {
                     </li>
                   ))}
                 </ul>
+                {/* The PixelCard hover effect will still work inside the link! */}
+                  <PixelCard variant="pink">
+                    <div className="absolute mt-0.5 inset-0 flex items-center justify-center gap-2">
+                       <div className="flex -space-x-2">
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">C1</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">C2</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">C3</div>
+                       </div>
+                       <span className="text-xs font-mono text-lime-400">+24</span>
+                    </div>
+                  </PixelCard>
               </MagicBento>
             </Link>
 
             {/* CARD 3: Connect (Now Clickable) */}
             <Link href="/registry" className="md:col-span-1 block group cursor-pointer">
               <MagicBento 
-                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col justify-between"
+                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col gap-5 justify-between"
                 glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
               >
                 <div>
@@ -309,7 +320,7 @@ export default function BrilliantLanding() {
                     Connect with your teammates and friends in the club.
                   </p>
                 </div>
-                <div className="relative w-full h-16">
+                {/* <div className="relative w-full h-36"> */}
                   {/* The PixelCard hover effect will still work inside the link! */}
                   <PixelCard variant="pink">
                     <div className="absolute inset-0 flex items-center justify-center gap-2">
@@ -321,7 +332,7 @@ export default function BrilliantLanding() {
                        <span className="text-xs font-mono text-lime-400">+24</span>
                     </div>
                   </PixelCard>
-                </div>
+                {/* </div> */}
               </MagicBento>
             </Link>
 
