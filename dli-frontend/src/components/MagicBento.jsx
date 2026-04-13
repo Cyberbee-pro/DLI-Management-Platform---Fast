@@ -4,7 +4,8 @@ import './MagicBento.css';
 
 const DEFAULT_PARTICLE_COUNT = 12;
 const DEFAULT_SPOTLIGHT_RADIUS = 300;
-const DEFAULT_GLOW_COLOR = '132, 0, 255';
+// ⚡ DEFAULT COLOR NOW F.A.S.T. GREEN ⚡
+const DEFAULT_GLOW_COLOR = '163, 230, 53'; 
 const MOBILE_BREAKPOINT = 768;
 
 const createParticleElement = (x, y, color = DEFAULT_GLOW_COLOR) => {
@@ -183,7 +184,6 @@ const ParticleCard = ({
 
 const GlobalSpotlight = ({ gridRef, disableAnimations = false, enabled = true, spotlightRadius = DEFAULT_SPOTLIGHT_RADIUS, glowColor = DEFAULT_GLOW_COLOR }) => {
   const spotlightRef = useRef(null);
-  const isInsideSection = useRef(false);
 
   useEffect(() => {
     if (disableAnimations || !gridRef?.current || !enabled) return;
@@ -200,7 +200,6 @@ const GlobalSpotlight = ({ gridRef, disableAnimations = false, enabled = true, s
       const rect = section?.getBoundingClientRect();
       const mouseInside = rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 
-      isInsideSection.current = mouseInside || false;
       const cards = gridRef.current.querySelectorAll('.magic-bento-card');
 
       if (!mouseInside) {
@@ -234,7 +233,6 @@ const GlobalSpotlight = ({ gridRef, disableAnimations = false, enabled = true, s
     };
 
     const handleMouseLeave = () => {
-      isInsideSection.current = false;
       gridRef.current?.querySelectorAll('.magic-bento-card').forEach((card) => card.style.setProperty('--glow-intensity', '0'));
       if (spotlightRef.current) gsap.to(spotlightRef.current, { opacity: 0, duration: 0.3, ease: 'power2.out' });
     };
@@ -266,7 +264,6 @@ const useMobileDetection = () => {
 const MagicBento = ({
   children,
   className = '',
-  textAutoHide = true,
   enableStars = true,
   enableSpotlight = true,
   enableBorderGlow = true,
@@ -282,7 +279,8 @@ const MagicBento = ({
   const isMobile = useMobileDetection();
   const shouldDisableAnimations = disableAnimations || isMobile;
 
-  const baseClassName = `magic-bento-card ${textAutoHide ? 'magic-bento-card--text-autohide' : ''} ${enableBorderGlow ? 'magic-bento-card--border-glow' : ''} ${className}`;
+  // ⚡ This allows us to pass your Tailwind classes straight through!
+  const baseClassName = `magic-bento-card ${enableBorderGlow ? 'magic-bento-card--border-glow' : ''} ${className}`;
 
   return (
     <div ref={gridRef} className="w-full h-full">
@@ -290,6 +288,7 @@ const MagicBento = ({
         <GlobalSpotlight gridRef={gridRef} disableAnimations={shouldDisableAnimations} enabled={enableSpotlight} spotlightRadius={spotlightRadius} glowColor={glowColor} />
       )}
       
+      {/* ⚡ NO MAPPING, NO HARDCODED ARRAYS. JUST PURE REACT CHILDREN. ⚡ */}
       <ParticleCard
         className={baseClassName}
         style={{ '--glow-color': glowColor }}
