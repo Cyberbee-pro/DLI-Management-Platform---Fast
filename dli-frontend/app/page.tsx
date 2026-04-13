@@ -188,16 +188,16 @@ export default function BrilliantLanding() {
             <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative">
                 <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl">
-                  <EventPixelCard src="/events/Fastathon/fst1.JPG" alt="Fastathon" label="2026 Fastathon" />
+                  <EventPixelCard src="/events/Fastathon/fst1.webp" alt="Fastathon" label="2026 Fastathon" />
                 </motion.div>
                 <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl">
-                  <EventPixelCard src="/events/Fastathon/fst3.JPG" alt="Fastathon" label="Node Teams" />
+                  <EventPixelCard src="/events/Fastathon/fst3.webp" alt="Fastathon" label="Node Teams" />
                 </motion.div>
                 <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 shadow-2xl">
-                  <EventPixelCard src="/events/Fastathon/fst2.JPG" alt="Fastathon" label="Core Devs" />
+                  <EventPixelCard src="/events/Fastathon/fst2.webp" alt="Fastathon" label="Core Devs" />
                 </motion.div>
                 <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl">
-                  <EventPixelCard src="/events/Fastathon/fst6.jpg" alt="Fastathon" label="Auction Phase" />
+                  <EventPixelCard src="/events/Fastathon/fst6.webp" alt="Fastathon" label="Auction Phase" />
                 </motion.div>
               </motion.div>
             </div>
@@ -207,13 +207,13 @@ export default function BrilliantLanding() {
             <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative">
                 <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl">
-                  <EventPixelCard src="/events/workshops/ragevn7.JPG" alt="NVIDIA Workshop" label="Rag learners" />
+                  <EventPixelCard src="/events/workshops/ragevn7.webp" alt="NVIDIA Workshop" label="Rag learners" />
                 </motion.div>
                 <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl">
-                  <EventPixelCard src="/events/workshops/ragevn4.JPG" alt="NVIDIA Workshop" label="Nvidia professional" />
+                  <EventPixelCard src="/events/workshops/ragevn4.webp" alt="NVIDIA Workshop" label="Nvidia professional" />
                 </motion.div>
                 <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl">
-                  <EventPixelCard src="/events/workshops/ragevn1.JPG" alt="NVIDIA Workshop" label="LLM Training" />
+                  <EventPixelCard src="/events/workshops/ragevn1.webp" alt="NVIDIA Workshop" label="LLM Training" />
                 </motion.div>
               </motion.div>
             </div>
@@ -223,16 +223,16 @@ export default function BrilliantLanding() {
             <div className="sticky top-40 z-30 h-[60vh] lg:h-[70vh] w-full">
               <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative">
                 <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] shadow-2xl">
-                  <EventPixelCard src="/events/Team/tm1.jpg" alt="Team" label="Node Alpha" />
+                  <EventPixelCard src="/events/Team/tm1.webp" alt="Team" label="Node Alpha" />
                 </motion.div>
                 <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 shadow-2xl">
-                  <EventPixelCard src="/events/Team/tm3.JPG" alt="Team" label="Core Infra" />
+                  <EventPixelCard src="/events/Team/tm3.webp" alt="Team" label="Core Infra" />
                 </motion.div>
                 <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 shadow-2xl">
-                  <EventPixelCard src="/events/Team/tm2.JPG" alt="Team" label="Frontend Sec" />
+                  <EventPixelCard src="/events/Team/tm2.webp" alt="Team" label="Frontend Sec" />
                 </motion.div>
                 <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 shadow-2xl">
-                  <EventPixelCard src="/events/Team/tm4.JPG" alt="Team" label="Platform Ops" />
+                  <EventPixelCard src="/events/Team/tm4.webp" alt="Team" label="Platform Ops" />
                 </motion.div>
               </motion.div>
             </div>
