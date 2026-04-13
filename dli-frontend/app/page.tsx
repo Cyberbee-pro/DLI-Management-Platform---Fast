@@ -4,7 +4,7 @@ import { useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useSpring, useMotionValueEvent } from "framer-motion";
 import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingUp } from "lucide-react";
-
+import DecryptedText from '@/components/DecryptedText';
 // Premium Animations & Backgrounds
 import SplitText from "@/components/SplitText";
 import BlurText from "@/components/BlurText";
@@ -169,8 +169,19 @@ export default function BrilliantLanding() {
               AUTHENTICATE TERMINAL <ArrowRight size={18} />
             </div>
           </Link>
+          <div style={{ marginTop: '4rem' }}>
+  <DecryptedText
+  text="Try hovering over the pictures"
+  animateOn="view"
+  revealDirection="start"
+  sequential
+  useOriginalCharsOnly={false}
+/>
+</div>
+
         </div>
 
+        
         <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
           
           <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
