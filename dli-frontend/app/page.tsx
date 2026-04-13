@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useRef, useState, useEffect, type RefObject } from "react";
 import Link from "next/link";
+import Image from "next/image"; // ⚡ CRITICAL FIX: Added missing import for Next.js Image
 import { motion, useScroll, useTransform, useSpring, useMotionValueEvent } from "framer-motion";
 import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingUp } from "lucide-react";
 import DecryptedText from '@/components/DecryptedText';
+
 // Premium Animations & Backgrounds
 import SplitText from "@/components/SplitText";
 import BlurText from "@/components/BlurText";
@@ -13,10 +15,11 @@ import MagicBento from "@/components/MagicBento";
 import PixelCard from "@/components/PixelCard"; 
 import SoftAurora from "@/components/SoftAurora"; 
 
+// ⚡ BUTTER SMOOTH CONFIG ⚡
 const SPRING_CONFIG = {
-  stiffness: 100,
-  damping: 30,
-  restDelta: 0.001,
+  stiffness: 150,
+  damping: 25,
+  mass: 0.1,
 } as const;
 
 const PARALLAX_DISTANCE = 250;
@@ -43,41 +46,54 @@ function useStaggeredCluster(targetRef: RefObject<HTMLDivElement | null>) {
   };
 }
 
-// ⚡ THE REAL PIXEL TRANSITION ⚡
-// Safely wrapped in relative z-[50] so it sits above the Aurora but doesn't get blocked
+// ⚡ SURGICAL GPU FIX: MOUNT-ON-HOVER ARCHITECTURE ⚡
+// Drops active canvases from 13 down to 1, completely solving Chromium lag.
 function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: string }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="w-full h-full relative z-[50] group cursor-pointer">
-      <PixelTransition
-        firstContent={
-          <img
-            src={src}
-            alt={alt}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+    <div 
+      className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* STATIC STATE: Uses Next.js <Image> for max performance while scrolling */}
+      <div className={`absolute inset-0 transition-opacity duration-300 ${isHovered ? 'opacity-0' : 'opacity-100'}`}>
+        <Image 
+          src={src} 
+          alt={alt} 
+          fill 
+          sizes="(max-width: 768px) 100vw, 50vw" 
+          className="object-cover" 
+          loading="lazy" 
+          quality={75} 
+        />
+      </div>
+
+      {/* DYNAMIC STATE: WebGL Canvas is only created when your mouse touches it */}
+      {isHovered && (
+        <div className="absolute inset-0 z-10">
+          <PixelTransition
+            firstContent={
+              // Note: PixelTransition requires a raw <img> to measure canvas data correctly.
+              // We use <Image> above for the actual network load!
+              <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            }
+            secondContent={
+              <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", backgroundColor: "#0a0a0a", border: "1px solid rgba(163, 230, 53, 0.4)" }}>
+                <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] text-center px-4 drop-shadow-[0_0_10px_rgba(163,230,53,0.8)]">
+                  {label}
+                </p>
+              </div>
+            }
+            gridSize={12}
+            pixelColor="#a3e635"
+            once={false}
+            animationStepDuration={0.3}
+            className="w-full h-full"
           />
-        }
-        secondContent={
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "grid",
-              placeItems: "center",
-              backgroundColor: "#0a0a0a",
-              border: "1px solid rgba(163, 230, 53, 0.4)"
-            }}
-          >
-            <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] text-center px-4">
-              {label}
-            </p>
-          </div>
-        }
-        gridSize={12}
-        pixelColor="#a3e635"
-        once={false}
-        animationStepDuration={0.3}
-        className="w-full h-full rounded-2xl overflow-hidden"
-      />
+        </div>
+      )}
     </div>
   );
 }
@@ -89,15 +105,21 @@ export default function BrilliantLanding() {
   const teamRef = useRef<HTMLDivElement>(null);
 
   const [isHeadlineReady, setIsHeadlineReady] = useState(false);
+  const [isLowTierDevice, setIsLowTierDevice] = useState(false);
+
+  useEffect(() => {
+    const checkDevice = () => setIsLowTierDevice(window.innerWidth < 768);
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
 
   const { scrollYProgress, scrollY } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
 
-  const smoothProgress = useSpring(scrollYProgress, { ...SPRING_CONFIG });
-  const smoothY = useSpring(scrollY, { ...SPRING_CONFIG });
-
+  const smoothY = useSpring(scrollY, SPRING_CONFIG);
   const shutterY = useTransform(smoothY, [0, 800], ["0%", "-120%"]);
   const logoScale = useTransform(smoothY, [0, 400], [1, 0.85]);
   const logoOpacity = useTransform(smoothY, [0, 500], [1, 0]);
@@ -116,13 +138,17 @@ export default function BrilliantLanding() {
     <div ref={containerRef} className="relative bg-black text-white selection:bg-lime-500/30 font-sans overflow-clip min-h-screen">
       
       {/* ⚡ GLOBAL EFFECTS (Aurora Only) ⚡ */}
-      <div className="fixed inset-0 z-[-1] pointer-events-none opacity-50">
-        <SoftAurora speed={0.6} scale={1.5} brightness={1} color1="#f7f7f7" color2="#e100ff" noiseFrequency={2.5} noiseAmplitude={1} bandHeight={0.5} bandSpread={1} octaveDecay={0.1} layerOffset={0} colorSpeed={1} enableMouseInteraction mouseInfluence={0.25} />
-      </div>
+      {!isLowTierDevice && (
+        <div className="fixed inset-0 z-[-1] pointer-events-none opacity-50">
+          <SoftAurora speed={0.6} scale={1.5} brightness={1} color1="#f7f7f7" color2="#e100ff" noiseFrequency={2.5} noiseAmplitude={1} bandHeight={0.5} bandSpread={1} octaveDecay={0.1} layerOffset={0} colorSpeed={1} enableMouseInteraction mouseInfluence={0.25} />
+        </div>
+      )}
 
       {/* 1. THE SHUTTER */}
-      <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)]">
-        <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center">
+      <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)] will-change-transform transform-gpu">
+        
+        {/* The Centered Logo & Title */}
+        <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center will-change-transform transform-gpu">
           <div className="mb-6">
             <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 20H80V35H35V45H70V60H35V80H20V20Z" fill="white" />
@@ -136,13 +162,20 @@ export default function BrilliantLanding() {
             </span>
             <SplitText text="NVIDIA" className="text-5xl md:text-8xl font-black tracking-tighter italic" delay={60} duration={1.2} ease="power3.out" splitType="chars" from={{ opacity: 0, y: 40 }} to={{ opacity: 1, y: 0 }} />
           </div>
-          <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50">
+        </motion.div>
+
+        {/* ⚡ CRITICAL FIX: Moved Scroll Indicator outside so it anchors to the screen bottom! */}
+        <motion.div 
+          style={{ opacity: logoOpacity }} 
+          className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50 will-change-transform transform-gpu"
+        >
+          <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="flex flex-col items-center gap-2">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold">Initiate Scroll Override</span>
             <ChevronDown size={16} />
           </motion.div>
         </motion.div>
-      </motion.div>
 
+      </motion.div>
       <div className="h-[60vh] md:h-[80vh] w-full" />
 
       {/* 2. THE TRANSITION & EVENT GALLERY */}
@@ -169,34 +202,32 @@ export default function BrilliantLanding() {
               AUTHENTICATE TERMINAL <ArrowRight size={18} />
             </div>
           </Link>
-          <div style={{ marginTop: '4rem'  }} className="text-lime-400">
-  <DecryptedText
-  text="Try hovering over the pictures"
-  animateOn="view"
-  revealDirection="start"
-  sequential
-  useOriginalCharsOnly={false}
-/>
-</div>
-
+          <div style={{ marginTop: '4rem' }} className="text-lime-400">
+            <DecryptedText
+              text="Try hovering over the pictures"
+              animateOn="view"
+              revealDirection="start"
+              sequential
+              useOriginalCharsOnly={false}
+            />
+          </div>
         </div>
 
-        
         <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
           
           <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
             <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
-              <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative">
-                <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl">
+              <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
+                <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Fastathon/fst1.webp" alt="Fastathon" label="2026 Fastathon" />
                 </motion.div>
-                <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl">
+                <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Fastathon/fst3.webp" alt="Fastathon" label="Node Teams" />
                 </motion.div>
-                <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 shadow-2xl">
+                <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Fastathon/fst2.webp" alt="Fastathon" label="Core Devs" />
                 </motion.div>
-                <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl">
+                <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Fastathon/fst6.webp" alt="Fastathon" label="Auction Phase" />
                 </motion.div>
               </motion.div>
@@ -205,14 +236,14 @@ export default function BrilliantLanding() {
 
           <div ref={workshopRef} className="relative h-[80vh] lg:h-[100vh]">
             <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
-              <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative">
-                <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl">
+              <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
+                <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/workshops/ragevn7.webp" alt="NVIDIA Workshop" label="Rag learners" />
                 </motion.div>
-                <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl">
+                <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/workshops/ragevn4.webp" alt="NVIDIA Workshop" label="Nvidia professional" />
                 </motion.div>
-                <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl">
+                <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/workshops/ragevn1.webp" alt="NVIDIA Workshop" label="LLM Training" />
                 </motion.div>
               </motion.div>
@@ -221,17 +252,17 @@ export default function BrilliantLanding() {
 
           <div ref={teamRef} className="relative h-[80vh] lg:h-[100vh]">
             <div className="sticky top-40 z-30 h-[60vh] lg:h-[70vh] w-full">
-              <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative">
-                <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] shadow-2xl">
+              <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
+                <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Team/tm1.webp" alt="Team" label="Node Alpha" />
                 </motion.div>
-                <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 shadow-2xl">
+                <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Team/tm3.webp" alt="Team" label="Core Infra" />
                 </motion.div>
-                <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 shadow-2xl">
+                <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Team/tm2.webp" alt="Team" label="Frontend Sec" />
                 </motion.div>
-                <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 shadow-2xl">
+                <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 shadow-2xl will-change-transform transform-gpu backface-hidden">
                   <EventPixelCard src="/events/Team/tm4.webp" alt="Team" label="Platform Ops" />
                 </motion.div>
               </motion.div>
@@ -254,10 +285,9 @@ export default function BrilliantLanding() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
             
-            {/* CARD 1: Task Board */}
             <Link href="/tasks" className="md:col-span-2 block group">
               <MagicBento 
-                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col justify-between"
+                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between"
                 glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
               >
                 <div className="flex justify-between items-start">
@@ -285,10 +315,9 @@ export default function BrilliantLanding() {
               </MagicBento>
             </Link>
 
-            {/* CARD 2: Course Catalogue */}
             <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group">
               <MagicBento 
-                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col gap-5 "
+                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5"
                 glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
               >
                 <GraduationCap className="h-8 w-8 text-lime-400 " />
@@ -304,24 +333,22 @@ export default function BrilliantLanding() {
                     </li>
                   ))}
                 </ul>
-                {/* The PixelCard hover effect will still work inside the link! */}
-                  <PixelCard variant="pink">
-                    <div className="absolute mt-0.5 inset-0 flex items-center justify-center gap-2">
-                       <div className="flex -space-x-2">
-                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">C1</div>
-                         <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">C2</div>
-                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">C3</div>
-                       </div>
-                       <span className="text-xs font-mono text-lime-400">+24</span>
-                    </div>
-                  </PixelCard>
+                <PixelCard variant="pink">
+                  <div className="absolute mt-0.5 inset-0 flex items-center justify-center gap-2">
+                     <div className="flex -space-x-2">
+                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">C1</div>
+                       <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">C2</div>
+                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">C3</div>
+                     </div>
+                     <span className="text-xs font-mono text-lime-400">+24</span>
+                  </div>
+                </PixelCard>
               </MagicBento>
             </Link>
 
-            {/* CARD 3: Connect (Now Clickable) */}
             <Link href="/registry" className="md:col-span-1 block group cursor-pointer">
               <MagicBento 
-                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col gap-5 justify-between"
+                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between"
                 glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
               >
                 <div>
@@ -331,26 +358,22 @@ export default function BrilliantLanding() {
                     Connect with your teammates and friends in the club.
                   </p>
                 </div>
-                {/* <div className="relative w-full h-36"> */}
-                  {/* The PixelCard hover effect will still work inside the link! */}
-                  <PixelCard variant="pink">
-                    <div className="absolute inset-0 flex items-center justify-center gap-2">
-                       <div className="flex -space-x-2">
-                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">P1</div>
-                         <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">P2</div>
-                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">P3</div>
-                       </div>
-                       <span className="text-xs font-mono text-lime-400">+24</span>
-                    </div>
-                  </PixelCard>
-                {/* </div> */}
+                <PixelCard variant="pink">
+                  <div className="absolute inset-0 flex items-center justify-center gap-2">
+                     <div className="flex -space-x-2">
+                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">P1</div>
+                       <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">P2</div>
+                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">P3</div>
+                     </div>
+                     <span className="text-xs font-mono text-lime-400">+24</span>
+                  </div>
+                </PixelCard>
               </MagicBento>
             </Link>
 
-            {/* CARD 4: Dashboard */}
             <Link href="/dashboard" className="md:col-span-1 block group">
               <MagicBento 
-                className="h-full rounded-3xl bg-neutral-900/50 backdrop-blur-sm border border-white/5 p-8 flex flex-col justify-between"
+                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between"
                 glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
               >
                 <div>
