@@ -169,7 +169,7 @@ export default function BrilliantLanding() {
               AUTHENTICATE TERMINAL <ArrowRight size={18} />
             </div>
           </Link>
-          <div style={{ marginTop: '4rem' }}>
+          <div style={{ marginTop: '4rem'  }} className="text-lime-400">
   <DecryptedText
   text="Try hovering over the pictures"
   animateOn="view"
