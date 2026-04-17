@@ -14,7 +14,7 @@ import PixelTransition from "@/components/PixelTransition";
 import MagicBento from "@/components/MagicBento"; 
 import PixelCard from "@/components/PixelCard"; 
 import SoftAurora from "@/components/SoftAurora"; 
-import Aurora from "@/components/Aurora"; // ⚡ NEW: Imported the Aurora background!
+import Silk from "@/components/Silk"; // ⚡ NEW: Imported the Silk background!
 
 // ⚡ BUTTER SMOOTH CONFIG ⚡
 const SPRING_CONFIG = {
@@ -141,16 +141,17 @@ export default function BrilliantLanding() {
       )}
 
       {/* 1. THE SHUTTER */}
-      {/* Added overflow-hidden to keep the Aurora contained inside the shutter block */}
       <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)] will-change-transform transform-gpu overflow-hidden">
         
-        {/* ⚡ NEW: Animated Aurora Background ⚡ */}
+        {/* ⚡ NEW: Animated Silk Background ⚡ */}
         {!isLowTierDevice && (
           <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-            <Aurora
-              colorStops={["#5227FF","#7cff67","#5227FF"]}
-              amplitude={0.4}
-              blend={0.15}
+            <Silk
+              speed={4.2}
+              scale={0.5}
+              color="#84CC16"
+              noiseIntensity={0.4}
+              rotation={4.5}
             />
           </div>
         )}
