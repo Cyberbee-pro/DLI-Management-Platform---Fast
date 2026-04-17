@@ -66,8 +66,11 @@ function Scene({ gridSize, trailSize, maxAge, interpolate, easingFunction, pixel
   const size = useThree(s => s.size);
   const viewport = useThree(s => s.viewport);
 
-  const dotMaterial = useMemo(() => new DotMaterial(), []);
-  dotMaterial.uniforms.pixelColor.value = new THREE.Color(pixelColor);
+  const dotMaterial = useMemo(() => {
+    const mat = new DotMaterial();
+    mat.uniforms.pixelColor.value = new THREE.Color(pixelColor);
+    return mat;
+  }, [pixelColor]);
 
   const [trail, onMove] = useTrailTexture({
     size: 512,
@@ -77,12 +80,18 @@ function Scene({ gridSize, trailSize, maxAge, interpolate, easingFunction, pixel
     ease: easingFunction || (x => x)
   });
 
-  if (trail) {
-    trail.minFilter = THREE.NearestFilter;
-    trail.magFilter = THREE.NearestFilter;
-    trail.wrapS = THREE.ClampToEdgeWrapping;
-    trail.wrapT = THREE.ClampToEdgeWrapping;
-  }
+  useEffect(() => {
+    if (trail) {
+      // eslint-disable-next-line react-hooks/immutability
+      trail.minFilter = THREE.NearestFilter;
+      // eslint-disable-next-line react-hooks/immutability
+      trail.magFilter = THREE.NearestFilter;
+      // eslint-disable-next-line react-hooks/immutability
+      trail.wrapS = THREE.ClampToEdgeWrapping;
+      // eslint-disable-next-line react-hooks/immutability
+      trail.wrapT = THREE.ClampToEdgeWrapping;
+    }
+  }, [trail]);
 
   const scale = Math.max(viewport.width, viewport.height) / 2;
 

@@ -95,7 +95,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-white">F.A.S.T. DLI</h1>
           <p className="mt-2 text-sm text-neutral-400">
-            Direct Liaison Interface // Active Node
+            Deep Leaarning Institute // Active Node
           </p>
         </div>
 

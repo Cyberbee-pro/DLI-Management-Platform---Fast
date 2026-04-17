@@ -410,7 +410,7 @@ useEffect(() => {
       try {
         setNudgeLoading(true);
         setNudgeError(null);
-        await refreshAdminUsers(token, controller.signal);
+        await refreshAdminUsers(token!, controller.signal);
       } catch (nudgeUsersError) {
         if (!controller.signal.aborted) {
           setNudgeError(

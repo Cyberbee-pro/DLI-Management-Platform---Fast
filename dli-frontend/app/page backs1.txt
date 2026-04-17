@@ -2,7 +2,6 @@
 
 import { useRef, useState, useEffect, type RefObject } from "react";
 import Link from "next/link";
-import Image from "next/image"; 
 import { motion, useScroll, useTransform, useSpring, useMotionValueEvent } from "framer-motion";
 import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingUp } from "lucide-react";
 import DecryptedText from '@/components/DecryptedText';
@@ -13,8 +12,8 @@ import BlurText from "@/components/BlurText";
 import PixelTransition from "@/components/PixelTransition";
 import MagicBento from "@/components/MagicBento"; 
 import PixelCard from "@/components/PixelCard"; 
-import SoftAurora from "@/components/SoftAurora"; 
-import Silk from "@/components/Silk"; // ⚡ NEW: Imported the Silk background!
+import DotField from "@/components/DotField"; 
+import Silk from "@/components/Silk"; 
 
 // ⚡ BUTTER SMOOTH CONFIG ⚡
 const SPRING_CONFIG = {
@@ -47,25 +46,23 @@ function useStaggeredCluster(targetRef: RefObject<HTMLDivElement | null>) {
   };
 }
 
-// ⚡ SURGICAL GPU FIX: MOUNT-ON-HOVER ARCHITECTURE ⚡
+// ⚡ OVERLAY FIX: Explicit 100% sizing and pointer-events-auto ⚡
 function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: string }) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div 
-      className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl"
+      // explicitly adding pointer-events-auto so this card catches the mouse
+      className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl pointer-events-auto"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`absolute inset-0 transition-opacity duration-300 ${isHovered ? 'opacity-0' : 'opacity-100'}`}>
-        <Image 
+        <img 
           src={src} 
           alt={alt} 
-          fill 
-          sizes="(max-width: 768px) 100vw, 50vw" 
-          className="object-cover" 
+          className="w-full h-full object-cover block" 
           loading="lazy" 
-          quality={75} 
         />
       </div>
 
@@ -73,10 +70,10 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
         <div className="absolute inset-0 z-10">
           <PixelTransition
             firstContent={
-              <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             }
             secondContent={
-              <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", backgroundColor: "#0a0a0a", border: "1px solid rgba(163, 230, 53, 0.4)" }}>
+              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", border: "1px solid rgba(163, 230, 53, 0.4)" }}>
                 <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] text-center px-4 drop-shadow-[0_0_10px_rgba(163,230,53,0.8)]">
                   {label}
                 </p>
@@ -86,7 +83,7 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
             pixelColor="#a3e635"
             once={false}
             animationStepDuration={0.3}
-            className="w-full h-full"
+            style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}
           />
         </div>
       )}
@@ -102,8 +99,10 @@ export default function BrilliantLanding() {
 
   const [isHeadlineReady, setIsHeadlineReady] = useState(false);
   const [isLowTierDevice, setIsLowTierDevice] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const checkDevice = () => setIsLowTierDevice(window.innerWidth < 768);
     checkDevice();
     window.addEventListener('resize', checkDevice);
@@ -133,31 +132,37 @@ export default function BrilliantLanding() {
   return (
     <div ref={containerRef} className="relative bg-black text-white selection:bg-lime-500/30 font-sans overflow-clip min-h-screen">
       
-      {/* ⚡ GLOBAL EFFECTS (Aurora Only) ⚡ */}
-      {!isLowTierDevice && (
-        <div className="fixed inset-0 z-[-1] pointer-events-none opacity-50">
-          <SoftAurora speed={0.6} scale={1.5} brightness={1} color1="#f7f7f7" color2="#e100ff" noiseFrequency={2.5} noiseAmplitude={1} bandHeight={0.5} bandSpread={1} octaveDecay={0.1} layerOffset={0} colorSpeed={1} enableMouseInteraction mouseInfluence={0.25} />
+      {/* ⚡ BACKGROUND LAYER (z-[0]) ⚡ */}
+      {/* Changed to z-[0] so it sits ABOVE the black background of the root div */}
+      {mounted && !isLowTierDevice && (
+        <div className="fixed inset-0 z-[0] w-full h-full opacity-80 pointer-events-auto">
+          <DotField
+            dotRadius={1.5}
+            dotSpacing={17}
+            bulgeStrength={34}
+            glowRadius={90}
+            sparkle
+            waveAmplitude={2}
+            cursorRadius={350}
+            cursorForce={0.12}
+            bulgeOnly={false}
+            gradientFrom="#75ff00"
+            gradientTo="#30e2ad"
+            glowColor="#3b7c67"
+          />
         </div>
       )}
 
-      {/* 1. THE SHUTTER */}
+      {/* 1. THE SHUTTER LAYER (z-[100]) */}
       <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)] will-change-transform transform-gpu overflow-hidden">
         
-        {/* ⚡ NEW: Animated Silk Background ⚡ */}
-        {!isLowTierDevice && (
+        {mounted && !isLowTierDevice && (
           <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-            <Silk
-              speed={4.2}
-              scale={0.5}
-              color="#84CC16"
-              noiseIntensity={0.4}
-              rotation={4.5}
-            />
+            <Silk speed={4.2} scale={0.5} color="#84CC16" noiseIntensity={0.4} rotation={4.5} />
           </div>
         )}
 
-        {/* The Centered Logo & Title */}
-        <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center will-change-transform transform-gpu relative z-10">
+        <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center will-change-transform transform-gpu relative z-10 pointer-events-none">
           <div className="mb-6">
             <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 20H80V35H35V45H70V60H35V80H20V20Z" fill="white" />
@@ -173,11 +178,7 @@ export default function BrilliantLanding() {
           </div>
         </motion.div>
 
-        {/* Scroll Indicator */}
-        <motion.div 
-          style={{ opacity: logoOpacity }} 
-          className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50 will-change-transform transform-gpu z-10"
-        >
+        <motion.div style={{ opacity: logoOpacity }} className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50 will-change-transform transform-gpu z-10 pointer-events-none">
           <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="flex flex-col items-center gap-2">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-lime-400">Initiate Scroll Override</span>
             <ChevronDown size={16} className="text-lime-400" />
@@ -186,241 +187,232 @@ export default function BrilliantLanding() {
 
       </motion.div>
 
-      <div className="h-[60vh] md:h-[80vh] w-full" />
-
-      {/* 2. THE TRANSITION & EVENT GALLERY */}
-      <section className="relative px-6 pb-20 md:pb-32 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+      {/* ⚡ CONTENT LAYER (z-[10]) ⚡ */}
+      {/* Wrapped entirely in pointer-events-none so your mouse falls through the empty space! */}
+      <div className="relative z-[10] w-full pointer-events-none">
         
-        <div className="relative lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0">
-          <p className="text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
-            {"// Operational Excellence"}
-          </p>
-          <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] flex flex-col gap-2 min-h-[160px] md:min-h-[220px]">
-            {isHeadlineReady && (
-              <>
-                <BlurText text="Deploying the" delay={50} animateBy="words" direction="top" />
-                <BlurText text="next class of" delay={200} animateBy="words" direction="top" />
-                <BlurText text="AI Engineers." delay={350} animateBy="words" direction="top" className="italic font-light" />
-              </>
-            )}
-          </h2>
-          <p className="text-lg text-neutral-500 max-w-md font-light leading-relaxed">
-            From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
-          </p>
-          <Link href="/login" className="group inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white">
-            <div className="flex text-black group-hover:text-white items-center gap-2">
-              AUTHENTICATE TERMINAL <ArrowRight size={18} />
-            </div>
-          </Link>
-          <div style={{ marginTop: '4rem' }} className="text-lime-400">
-            <DecryptedText
-              text="Try hovering over the pictures"
-              animateOn="view"
-              revealDirection="start"
-              sequential
-              useOriginalCharsOnly={false}
-            />
-          </div>
-        </div>
+        {/* The Spacer */}
+        <div className="h-[60vh] md:h-[80vh] w-full" />
 
-        <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
+        {/* 2. THE TRANSITION & EVENT GALLERY */}
+        <section className="relative px-6 pb-20 md:pb-32 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          {/* FASTATHON CLUSTER */}
-          <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
-            <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
-              <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
-                <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Fastathon/fst1.webp" alt="Fastathon" label="2026 Fastathon" />
-                </motion.div>
-                <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Fastathon/fst3.webp" alt="Fastathon" label="Node Teams" />
-                </motion.div>
-                <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Fastathon/fst2.webp" alt="Fastathon" label="Core Devs" />
-                </motion.div>
-                <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Fastathon/fst6.webp" alt="Fastathon" label="Auction Phase" />
-                </motion.div>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* WORKSHOP CLUSTER */}
-          <div ref={workshopRef} className="relative h-[80vh] lg:h-[100vh]">
-            <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
-              <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
-                <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/workshops/ragevn7.webp" alt="NVIDIA Workshop" label="Rag learners" />
-                </motion.div>
-                <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/workshops/ragevn4.webp" alt="NVIDIA Workshop" label="Nvidia professional" />
-                </motion.div>
-                <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/workshops/ragevn1.webp" alt="NVIDIA Workshop" label="LLM Training" />
-                </motion.div>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* TEAM CLUSTER */}
-          <div ref={teamRef} className="relative h-[80vh] lg:h-[100vh]">
-            <div className="sticky top-40 z-30 h-[60vh] lg:h-[70vh] w-full">
-              <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
-                <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Team/tm1.webp" alt="Team" label="Node Alpha" />
-                </motion.div>
-                <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Team/tm3.webp" alt="Team" label="Core Infra" />
-                </motion.div>
-                <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Team/tm2.webp" alt="Team" label="Frontend Sec" />
-                </motion.div>
-                <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 shadow-2xl will-change-transform transform-gpu backface-hidden">
-                  <EventPixelCard src="/events/Team/tm4.webp" alt="Team" label="Platform Ops" />
-                </motion.div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. ⚡ CLICKABLE BENTO ECOSYSTEM ⚡ */}
-      <section className="px-6 py-20 md:py-32 relative z-10 bg-transparent">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-            <h3 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
-              The Ecosystem.
-            </h3>
-            <p className="text-neutral-400 max-w-sm text-sm">
-              Integrated tools designed for the next generation of artificial intelligence specialists.
+          <div className="relative lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0">
+            <p className="text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
+              {"// Operational Excellence"}
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
+            <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] flex flex-col gap-2 min-h-[160px] md:min-h-[220px]">
+              {isHeadlineReady && (
+                <>
+                  <BlurText text="Deploying the" delay={50} animateBy="words" direction="top" />
+                  <BlurText text="next class of" delay={200} animateBy="words" direction="top" />
+                  <BlurText text="AI Engineers." delay={350} animateBy="words" direction="top" className="italic font-light" />
+                </>
+              )}
+            </h2>
+            <p className="text-lg text-neutral-500 max-w-md font-light leading-relaxed">
+              From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
+            </p>
             
-            <Link href="/tasks" className="md:col-span-2 block group">
-              <MagicBento 
-                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between"
-                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
-              >
-                <div className="flex justify-between items-start">
-                  <ClipboardList className="h-8 w-8 text-lime-400 mb-4" />
-                  <span className="text-[10px] font-mono border border-lime-500/50 text-lime-400 bg-lime-500/10 px-3 py-1.5 rounded-full uppercase tracking-widest">
-                    Hot Bounties Active
-                  </span>
-                </div>
-                <div>
-                  <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Task Board</h4>
-                  <p className="text-neutral-400 text-sm max-w-sm mb-6">
-                    Gamified challenges designed to test your technical limits and earn exclusive F.A.S.T. points.
-                  </p>
-                  <div className="space-y-4 max-w-md">
-                    <div className="flex justify-between items-center pl-4 border-l-2 border-lime-400">
-                      <span className="text-sm text-zinc-300">CUDA Optimization Sprint</span>
-                      <span className="text-xs font-mono text-lime-400">800 PTS</span>
-                    </div>
-                    <div className="flex justify-between items-center pl-4 border-l-2 border-neutral-800">
-                      <span className="text-sm text-zinc-500">Omniverse Scene Synthesis</span>
-                      <span className="text-xs font-mono text-zinc-500">1200 PTS</span>
-                    </div>
-                  </div>
-                </div>
-              </MagicBento>
+            {/* Re-enable pointer events just for the button */}
+            <Link href="/login" className="group inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white pointer-events-auto">
+              <div className="flex text-black group-hover:text-white items-center gap-2">
+                AUTHENTICATE TERMINAL <ArrowRight size={18} />
+              </div>
             </Link>
 
-            <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group">
-              <MagicBento 
-                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5"
-                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
-              >
-                <GraduationCap className="h-8 w-8 text-lime-400 " />
-                <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
-                <p className="text-neutral-400 text-sm ">
-                  Official NVIDIA DLI training modules tailored for the F.A.S.T. curriculum.
-                </p>
-                <ul className="space-y-6 flex-1">
-                  {['COMPUTER VISION', 'GENERATIVE AI', 'JETSON EDGE AI'].map((item) => (
-                    <li key={item} className="flex items-center gap-3 text-xs font-mono text-zinc-400 uppercase tracking-widest">
-                      <span className="w-1.5 h-1.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.8)]" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <PixelCard variant="pink">
-                  <div className="absolute mt-0.5 inset-0 flex items-center justify-center gap-2">
-                     <div className="flex -space-x-2">
-                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">C1</div>
-                       <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">C2</div>
-                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">C3</div>
-                     </div>
-                     <span className="text-xs font-mono text-lime-400">+24</span>
-                  </div>
-                </PixelCard>
-              </MagicBento>
-            </Link>
-
-            <Link href="/registry" className="md:col-span-1 block group cursor-pointer">
-              <MagicBento 
-                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between"
-                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
-              >
-                <div>
-                  <Users className="h-8 w-8 text-lime-400 mb-4" />
-                  <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Connect</h4>
-                  <p className="text-neutral-400 text-sm">
-                    Connect with your teammates and friends in the club.
-                  </p>
-                </div>
-                <PixelCard variant="pink">
-                  <div className="absolute inset-0 flex items-center justify-center gap-2">
-                     <div className="flex -space-x-2">
-                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">P1</div>
-                       <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">P2</div>
-                       <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">P3</div>
-                     </div>
-                     <span className="text-xs font-mono text-lime-400">+24</span>
-                  </div>
-                </PixelCard>
-              </MagicBento>
-            </Link>
-
-            <Link href="/dashboard" className="md:col-span-1 block group">
-              <MagicBento 
-                className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between"
-                glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect
-              >
-                <div>
-                  <TrendingUp className="h-8 w-8 text-lime-400 mb-4" />
-                  <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Dashboard</h4>
-                  <p className="text-neutral-400 text-sm">
-                    View/Manage all your platform data.
-                  </p>
-                </div>
-                <div className="w-full">
-                  <div className="flex items-end gap-1.5 h-20 w-full">
-                    {[30, 45, 60, 100, 75, 40, 50].map((h, i) => (
-                      <div key={i} className={`flex-1 rounded-t-sm transition-all duration-500 ${i === 3 ? 'bg-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.5)]' : 'bg-neutral-800'}`} style={{ height: `${h}%` }} />
-                    ))}
-                  </div>
-                  <div className="flex justify-between mt-3 text-[9px] font-mono uppercase text-neutral-500">
-                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                  </div>
-                </div>
-              </MagicBento>
-            </Link>
-
+            <div style={{ marginTop: '4rem' }} className="text-lime-400 min-h-[24px]">
+              {mounted && (
+                <DecryptedText text="Try hovering over the pictures" animateOn="view" revealDirection="start" sequential useOriginalCharsOnly={false} />
+              )}
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* 4. FOOTER */}
-      <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black">
-        <div className="flex gap-8">
-          <Link href="#" className="hover:text-white">GitHub</Link>
-          <Link href="#" className="hover:text-white">Discord</Link>
-        </div>
-        <div className="italic">FAST X NVIDIA // SRM KTR 2026</div>
-      </footer>
+          <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
+            <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
+              <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
+                <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
+                  <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Fastathon/fst1.webp" alt="Fastathon" label="2026 Fastathon" />
+                  </motion.div>
+                  <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Fastathon/fst3.webp" alt="Fastathon" label="Node Teams" />
+                  </motion.div>
+                  <motion.div style={{ y: fMotion.p3_y, opacity: fMotion.p3_o }} className="absolute bottom-0 left-[15%] w-[45%] h-[55%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Fastathon/fst2.webp" alt="Fastathon" label="Core Devs" />
+                  </motion.div>
+                  <motion.div style={{ y: fMotion.p4_y, opacity: fMotion.p4_o }} className="absolute bottom-[10%] right-[5%] w-[35%] h-[40%] z-40 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Fastathon/fst6.webp" alt="Fastathon" label="Auction Phase" />
+                  </motion.div>
+                </motion.div>
+              </div>
+            </div>
+
+            <div ref={workshopRef} className="relative h-[80vh] lg:h-[100vh]">
+              <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
+                <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
+                  <motion.div style={{ y: wMotion.p1_y, opacity: wMotion.p1_o }} className="absolute top-0 right-0 w-[60%] h-[70%] shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/workshops/ragevn7.webp" alt="NVIDIA Workshop" label="Rag learners" />
+                  </motion.div>
+                  <motion.div style={{ y: wMotion.p2_y, opacity: wMotion.p2_o }} className="absolute top-[20%] left-0 w-[45%] h-[60%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/workshops/ragevn4.webp" alt="NVIDIA Workshop" label="Nvidia professional" />
+                  </motion.div>
+                  <motion.div style={{ y: wMotion.p3_y, opacity: wMotion.p3_o }} className="absolute bottom-0 right-[15%] w-[50%] h-[45%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/workshops/ragevn1.webp" alt="NVIDIA Workshop" label="LLM Training" />
+                  </motion.div>
+                </motion.div>
+              </div>
+            </div>
+
+            <div ref={teamRef} className="relative h-[80vh] lg:h-[100vh]">
+              <div className="sticky top-40 z-30 h-[60vh] lg:h-[70vh] w-full">
+                <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
+                  <motion.div style={{ y: tMotion.p1_y, opacity: tMotion.p1_o }} className="absolute top-0 left-[5%] w-[50%] h-[60%] shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Team/tm1.webp" alt="Team" label="Node Alpha" />
+                  </motion.div>
+                  <motion.div style={{ y: tMotion.p2_y, opacity: tMotion.p2_o }} className="absolute top-[15%] right-0 w-[45%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Team/tm3.webp" alt="Team" label="Core Infra" />
+                  </motion.div>
+                  <motion.div style={{ y: tMotion.p3_y, opacity: tMotion.p3_o }} className="absolute bottom-[5%] left-[25%] w-[40%] h-[50%] z-30 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Team/tm2.webp" alt="Team" label="Frontend Sec" />
+                  </motion.div>
+                  <motion.div style={{ y: tMotion.p4_y, opacity: tMotion.p4_o }} className="absolute bottom-0 right-[10%] w-[35%] h-[40%] z-40 shadow-2xl will-change-transform transform-gpu backface-hidden">
+                    <EventPixelCard src="/events/Team/tm4.webp" alt="Team" label="Platform Ops" />
+                  </motion.div>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. ⚡ CLICKABLE BENTO ECOSYSTEM ⚡ */}
+        <section className="px-6 py-20 md:py-32 relative z-10 bg-transparent">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+              <h3 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
+                The Ecosystem.
+              </h3>
+              <p className="text-neutral-400 max-w-sm text-sm">
+                Integrated tools designed for the next generation of artificial intelligence specialists.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
+              
+              {/* Re-enable pointer events just for the cards */}
+              <Link href="/tasks" className="md:col-span-2 block group pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                  <div className="flex justify-between items-start">
+                    <ClipboardList className="h-8 w-8 text-lime-400 mb-4" />
+                    <span className="text-[10px] font-mono border border-lime-500/50 text-lime-400 bg-lime-500/10 px-3 py-1.5 rounded-full uppercase tracking-widest">
+                      Hot Bounties Active
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Task Board</h4>
+                    <p className="text-neutral-400 text-sm max-w-sm mb-6">
+                      Gamified challenges designed to test your technical limits and earn exclusive F.A.S.T. points.
+                    </p>
+                    <div className="space-y-4 max-w-md">
+                      <div className="flex justify-between items-center pl-4 border-l-2 border-lime-400">
+                        <span className="text-sm text-zinc-300">CUDA Optimization Sprint</span>
+                        <span className="text-xs font-mono text-lime-400">800 PTS</span>
+                      </div>
+                      <div className="flex justify-between items-center pl-4 border-l-2 border-neutral-800">
+                        <span className="text-sm text-zinc-500">Omniverse Scene Synthesis</span>
+                        <span className="text-xs font-mono text-zinc-500">1200 PTS</span>
+                      </div>
+                    </div>
+                  </div>
+                </MagicBento>
+              </Link>
+
+              <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                  <GraduationCap className="h-8 w-8 text-lime-400 " />
+                  <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
+                  <p className="text-neutral-400 text-sm ">
+                    Official NVIDIA DLI training modules tailored for the F.A.S.T. curriculum.
+                  </p>
+                  <ul className="space-y-6 flex-1">
+                    {['COMPUTER VISION', 'GENERATIVE AI', 'JETSON EDGE AI'].map((item) => (
+                      <li key={item} className="flex items-center gap-3 text-xs font-mono text-zinc-400 uppercase tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.8)]" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <PixelCard variant="pink">
+                    <div className="absolute mt-0.5 inset-0 flex items-center justify-center gap-2">
+                       <div className="flex -space-x-2">
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">C1</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">C2</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">C3</div>
+                       </div>
+                       <span className="text-xs font-mono text-lime-400">+24</span>
+                    </div>
+                  </PixelCard>
+                </MagicBento>
+              </Link>
+
+              <Link href="/registry" className="md:col-span-1 block group cursor-pointer pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                  <div>
+                    <Users className="h-8 w-8 text-lime-400 mb-4" />
+                    <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Connect</h4>
+                    <p className="text-neutral-400 text-sm">
+                      Connect with your teammates and friends in the club.
+                    </p>
+                  </div>
+                  <PixelCard variant="pink">
+                    <div className="absolute inset-0 flex items-center justify-center gap-2">
+                       <div className="flex -space-x-2">
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-30">P1</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-700 border border-black flex items-center justify-center text-[10px] text-lime-400 z-20">P2</div>
+                         <div className="w-8 h-8 rounded-full bg-neutral-800 border border-black flex items-center justify-center text-[10px] text-lime-400 z-10">P3</div>
+                       </div>
+                       <span className="text-xs font-mono text-lime-400">+24</span>
+                    </div>
+                  </PixelCard>
+                </MagicBento>
+              </Link>
+
+              <Link href="/dashboard" className="md:col-span-1 block group pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                  <div>
+                    <TrendingUp className="h-8 w-8 text-lime-400 mb-4" />
+                    <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Dashboard</h4>
+                    <p className="text-neutral-400 text-sm">
+                      View/Manage all your platform data.
+                    </p>
+                  </div>
+                  <div className="w-full">
+                    <div className="flex items-end gap-1.5 h-20 w-full">
+                      {[30, 45, 60, 100, 75, 40, 50].map((h, i) => (
+                        <div key={i} className={`flex-1 rounded-t-sm transition-all duration-500 ${i === 3 ? 'bg-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.5)]' : 'bg-neutral-800'}`} style={{ height: `${h}%` }} />
+                      ))}
+                    </div>
+                    <div className="flex justify-between mt-3 text-[9px] font-mono uppercase text-neutral-500">
+                      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                  </div>
+                </MagicBento>
+              </Link>
+
+            </div>
+          </div>
+        </section>
+
+        {/* 4. FOOTER */}
+        <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black">
+          <div className="flex gap-8">
+            <Link href="#" className="hover:text-white pointer-events-auto">GitHub</Link>
+            <Link href="#" className="hover:text-white pointer-events-auto">Discord</Link>
+          </div>
+          <div className="italic">FAST X NVIDIA // SRM KTR 2026</div>
+        </footer>
+        
+      </div>
     </div>
   );
 }

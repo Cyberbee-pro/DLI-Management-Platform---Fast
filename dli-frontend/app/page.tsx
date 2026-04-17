@@ -51,7 +51,6 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
 
   return (
     <div 
-      // ⚡ CRITICAL: pointer-events-auto allows the mouse to hover this specific card
       className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl pointer-events-auto"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -66,13 +65,13 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
       </div>
 
       {isHovered && (
-        <div className="absolute inset-0 z-10 overflow-hidden">
+        <div className="absolute inset-0 z-10">
           <PixelTransition
             firstContent={
-              <img src={src} alt={alt} className="w-full h-full object-cover block absolute inset-0" />
+              <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             }
             secondContent={
-              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-[#0a0a0a] border border-lime-500/40">
+              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", border: "1px solid rgba(163, 230, 53, 0.4)" }}>
                 <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] text-center px-4 drop-shadow-[0_0_10px_rgba(163,230,53,0.8)]">
                   {label}
                 </p>
@@ -82,7 +81,7 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
             pixelColor="#a3e635"
             once={false}
             animationStepDuration={0.3}
-            className="absolute inset-0 w-full h-full"
+            style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}
           />
         </div>
       )}
@@ -101,7 +100,8 @@ export default function BrilliantLanding() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // ⚡ FIX: Delay setMounted to avoid synchronous setState in effect (ESLint error)
+    setTimeout(() => setMounted(true), 0);
     const checkDevice = () => setIsLowTierDevice(window.innerWidth < 768);
     checkDevice();
     window.addEventListener('resize', checkDevice);
@@ -129,18 +129,18 @@ export default function BrilliantLanding() {
   const tMotion = useStaggeredCluster(teamRef);
 
   return (
-    // ⚡ FIX 1: Explicitly added bg-black to the root so the DotField has a dark canvas to sit on
-    <div ref={containerRef} className="relative bg-black text-white selection:bg-lime-500/30 font-sans overflow-clip min-h-screen">
+    // ⚡ FIX 1: Removed overflow-clip and overflow-x-hidden from the root to restore sticky behavior!
+    <div ref={containerRef} className="relative bg-black text-white selection:bg-lime-500/30 font-sans min-h-screen">
       
-      {/* ⚡ FIX 2: DotField is now z-[0] (sitting right on the black background). */}
+      {/* ⚡ CANVAS FIX: using fixed inset-0 prevents horizontal scrollbar issues */}
       {mounted && !isLowTierDevice && (
-        <div className="fixed inset-0 z-[0] opacity-80 w-full h-full">
+        <div className="fixed inset-0 z-[0] opacity-80 pointer-events-auto">
           <DotField
             dotRadius={1.5}
             dotSpacing={17}
             bulgeStrength={34}
             glowRadius={90}
-            sparkle={true}
+            sparkle
             waveAmplitude={2}
             cursorRadius={350}
             cursorForce={0.12}
@@ -152,8 +152,8 @@ export default function BrilliantLanding() {
         </div>
       )}
 
-      {/* 1. THE SHUTTER (z-[100] covers EVERYTHING until it scrolls away) */}
-      <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)] will-change-transform transform-gpu overflow-hidden">
+      {/* 1. THE SHUTTER (z-[100]) */}
+      <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)] will-change-transform transform-gpu overflow-hidden pointer-events-none">
         
         {mounted && !isLowTierDevice && (
           <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
@@ -186,16 +186,16 @@ export default function BrilliantLanding() {
 
       </motion.div>
 
-      <div className="h-[60vh] md:h-[80vh] w-full" />
-
-      {/* ⚡ FIX 3: Content Wrapper is z-[10] and pointer-events-none. 
-          This lets mouse movement fall through the empty black spaces down to the DotField! */}
-      <div className="relative z-10 w-full pointer-events-none">
+      {/* ⚡ CONTENT LAYER (z-[10]) ⚡ */}
+      <div className="relative z-[10] w-full pointer-events-none">
         
+        <div className="h-[60vh] md:h-[80vh] w-full" />
+
         {/* 2. THE TRANSITION & EVENT GALLERY */}
         <section className="relative px-6 pb-20 md:pb-32 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          <div className="relative lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0">
+          {/* ⚡ FIX 2: Added pointer-events-auto back to the sticky container! */}
+          <div className="relative lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0 pointer-events-auto">
             <p className="text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
               {"// Operational Excellence"}
             </p>
@@ -211,12 +211,13 @@ export default function BrilliantLanding() {
             <p className="text-lg text-neutral-500 max-w-md font-light leading-relaxed">
               From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
             </p>
-            <Link href="/login" className="group inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white pointer-events-auto">
+            
+            <Link href="/login" className="group inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white">
               <div className="flex text-black group-hover:text-white items-center gap-2">
                 AUTHENTICATE TERMINAL <ArrowRight size={18} />
               </div>
             </Link>
-            
+
             <div style={{ marginTop: '4rem' }} className="text-lime-400 min-h-[24px]">
               {mounted && (
                 <DecryptedText text="Try hovering over the pictures" animateOn="view" revealDirection="start" sequential useOriginalCharsOnly={false} />
@@ -225,7 +226,6 @@ export default function BrilliantLanding() {
           </div>
 
           <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
-            {/* FASTATHON CLUSTER */}
             <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
               <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
                 <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
@@ -245,7 +245,6 @@ export default function BrilliantLanding() {
               </div>
             </div>
 
-            {/* WORKSHOP CLUSTER */}
             <div ref={workshopRef} className="relative h-[80vh] lg:h-[100vh]">
               <div className="sticky top-32 z-20 h-[60vh] lg:h-[70vh] w-full">
                 <motion.div style={{ scale: wMotion.scale, opacity: wMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
@@ -262,7 +261,6 @@ export default function BrilliantLanding() {
               </div>
             </div>
 
-            {/* TEAM CLUSTER */}
             <div ref={teamRef} className="relative h-[80vh] lg:h-[100vh]">
               <div className="sticky top-40 z-30 h-[60vh] lg:h-[70vh] w-full">
                 <motion.div style={{ scale: tMotion.scale, opacity: tMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
@@ -296,9 +294,9 @@ export default function BrilliantLanding() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px] pointer-events-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
               
-              <Link href="/tasks" className="md:col-span-2 block group">
+              <Link href="/tasks" className="md:col-span-2 block group pointer-events-auto">
                 <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div className="flex justify-between items-start">
                     <ClipboardList className="h-8 w-8 text-lime-400 mb-4" />
@@ -325,7 +323,7 @@ export default function BrilliantLanding() {
                 </MagicBento>
               </Link>
 
-              <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group">
+              <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group pointer-events-auto">
                 <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <GraduationCap className="h-8 w-8 text-lime-400 " />
                   <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
@@ -353,7 +351,7 @@ export default function BrilliantLanding() {
                 </MagicBento>
               </Link>
 
-              <Link href="/registry" className="md:col-span-1 block group cursor-pointer">
+              <Link href="/registry" className="md:col-span-1 block group cursor-pointer pointer-events-auto">
                 <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div>
                     <Users className="h-8 w-8 text-lime-400 mb-4" />
@@ -375,7 +373,7 @@ export default function BrilliantLanding() {
                 </MagicBento>
               </Link>
 
-              <Link href="/dashboard" className="md:col-span-1 block group">
+              <Link href="/dashboard" className="md:col-span-1 block group pointer-events-auto">
                 <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div>
                     <TrendingUp className="h-8 w-8 text-lime-400 mb-4" />
@@ -401,16 +399,16 @@ export default function BrilliantLanding() {
           </div>
         </section>
 
+        {/* 4. FOOTER */}
+        <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black">
+          <div className="flex gap-8">
+            <Link href="#" className="hover:text-white pointer-events-auto">GitHub</Link>
+            <Link href="#" className="hover:text-white pointer-events-auto">Discord</Link>
+          </div>
+          <div className="italic">FAST X NVIDIA // SRM KTR 2026</div>
+        </footer>
+        
       </div>
-
-      {/* 4. FOOTER */}
-      <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black pointer-events-auto">
-        <div className="flex gap-8">
-          <Link href="#" className="hover:text-white">GitHub</Link>
-          <Link href="#" className="hover:text-white">Discord</Link>
-        </div>
-        <div className="italic">FAST X NVIDIA // SRM KTR 2026</div>
-      </footer>
     </div>
   );
 }
