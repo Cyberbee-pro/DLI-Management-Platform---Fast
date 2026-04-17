@@ -41,6 +41,7 @@ interface DashboardUser {
   email: string;
   srmRegNo: string;
   role: "member" | "admin" | "moderator";
+  designation?: string | null;
   rank: string;
   coursesCompletedCount: number;
   lastLoginAt?: string | null;
@@ -142,8 +143,10 @@ interface ActionNotice {
 interface NudgeUser {
   _id: string;
   name: string;
+  email?: string;
   srmRegNo: string;
   role: "member" | "admin" | "moderator";
+  designation?: string | null;
   rank?: string;
   avatarUrl?: string | null;
   linkedinUrl?: string | null;
@@ -253,7 +256,7 @@ export default function DashboardPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [submissionTaskId, setSubmissionTaskId] = useState<string | null>(null);
   const [approvalTaskId, setApprovalTaskId] = useState<string | null>(null);
-  const [nudgeUsers, setNudgeUsers] = useState<NudgeUser[]>([]);
+  const [adminUsers, setAdminUsers] = useState<NudgeUser[]>([]);
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeSubmitting, setNudgeSubmitting] = useState(false);
   const [nudgeError, setNudgeError] = useState<string | null>(null);
@@ -303,6 +306,39 @@ export default function DashboardPage() {
       }
 
       setDashboard(payload.data);
+    },
+    [handleUnauthorized],
+  );
+
+  const refreshAdminUsers = useCallback(
+    async (token: string, signal?: AbortSignal) => {
+      const usersEndpoint = buildAdminUsersEndpoint();
+
+      if (!usersEndpoint) {
+        throw new Error("NEXT_PUBLIC_API_URL is not configured.");
+      }
+
+      const response = await fetch(usersEndpoint, {
+        method: "GET",
+        cache: "no-store",
+        signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const payload = (await response.json().catch(() => null)) as AdminUsersApiResponse | null;
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        throw new Error(payload?.message ?? `Failed to load users (${response.status}).`);
+      }
+
+      setAdminUsers(Array.isArray(payload?.data) ? payload.data : []);
     },
     [handleUnauthorized],
   );
@@ -363,58 +399,26 @@ useEffect(() => {
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
-    const usersEndpoint = buildAdminUsersEndpoint();
     const controller = new AbortController();
 
     if (!token || dashboard?.user.role !== "admin") {
-      setNudgeUsers([]);
+      setAdminUsers([]);
       return () => controller.abort();
     }
 
-    async function loadNudgeUsers() {
-      if (!usersEndpoint) {
-        setNudgeError("NEXT_PUBLIC_API_URL is not configured.");
-        return;
-      }
-
+    async function loadAdminUsers() {
       try {
         setNudgeLoading(true);
         setNudgeError(null);
-
-        const response = await fetch(usersEndpoint, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const payload = (await response.json().catch(() => null)) as AdminUsersApiResponse | null;
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            handleUnauthorized();
-            return;
-          }
-
-          throw new Error(payload?.message ?? `Failed to load members (${response.status}).`);
-        }
-
-        if (!controller.signal.aborted) {
-          const members = Array.isArray(payload?.data)
-            ? payload.data.filter((user) => user.role === "member")
-            : [];
-          setNudgeUsers(members);
-        }
+        await refreshAdminUsers(token, controller.signal);
       } catch (nudgeUsersError) {
         if (!controller.signal.aborted) {
           setNudgeError(
             nudgeUsersError instanceof Error
               ? nudgeUsersError.message
-              : "Unable to load members for governance nudges.",
+              : "Unable to load users for governance tooling.",
           );
-          setNudgeUsers([]);
+          setAdminUsers([]);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -423,13 +427,14 @@ useEffect(() => {
       }
     }
 
-    void loadNudgeUsers();
+    void loadAdminUsers();
 
     return () => controller.abort();
-  }, [dashboard?.user.role, handleUnauthorized]);
+  }, [dashboard?.user.role, refreshAdminUsers]);
 
   const activeTasks = dashboard ? dashboard.claimedTasks ?? dashboard.activeTasks : [];
   const governance = dashboard?.governance;
+  const nudgeUsers = adminUsers.filter((user) => user.role === "member");
   const pendingTaskApprovals = governance?.pendingTaskApprovals ?? [];
   const pendingCourseApprovals = governance?.pendingCourseApprovals ?? [];
   const selectedTask = activeTasks.find((task) => task._id === selectedTaskId) ?? null;
@@ -723,27 +728,7 @@ useEffect(() => {
         throw new Error(payload?.message ?? `Network nudge failed (${response.status}).`);
       }
 
-      const usersEndpoint = buildAdminUsersEndpoint();
-
-      if (usersEndpoint) {
-        const usersResponse = await fetch(usersEndpoint, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const usersPayload =
-          (await usersResponse.json().catch(() => null)) as AdminUsersApiResponse | null;
-
-        if (usersResponse.ok) {
-          setNudgeUsers(
-            Array.isArray(usersPayload?.data)
-              ? usersPayload.data.filter((user) => user.role === "member")
-              : [],
-          );
-        }
-      }
+      await refreshAdminUsers(token);
 
       if (!selectAllMembers) {
         setSelectedNudgeUserIds([]);
@@ -769,6 +754,7 @@ useEffect(() => {
 
     if (token) {
       await refreshDashboard(token);
+      await refreshAdminUsers(token);
     }
 
     setActionNotice({
@@ -1052,12 +1038,27 @@ useEffect(() => {
         {user.role === "admin" ? (
           <AdminToolbox
             userRole={user.role}
+            users={adminUsers.map((operator) => ({
+              _id: operator._id,
+              name: operator.name,
+              email: operator.email,
+              srmRegNo: operator.srmRegNo,
+              role: operator.role,
+              designation: operator.designation ?? null,
+            }))}
             members={nudgeUsers.map((member) => ({
               _id: member._id,
               name: member.name,
               srmRegNo: member.srmRegNo,
               rank: member.rank,
             }))}
+            designationSuggestions={Array.from(
+              new Set(
+                adminUsers
+                  .map((operator) => operator.designation?.trim() ?? "")
+                  .filter(Boolean),
+              ),
+            ).sort((left, right) => left.localeCompare(right))}
             membersLoading={nudgeLoading}
             onUnauthorized={handleUnauthorized}
             onSuccess={(message) => void handleAdminToolboxSuccess(message)}

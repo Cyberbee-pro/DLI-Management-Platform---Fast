@@ -23,7 +23,8 @@ interface AccountUser {
   name: string;
   email: string;
   srmRegNo: string;
-  role: "member" | "admin";
+  role: "member" | "moderator" | "admin";
+  designation?: string | null;
   avatarUrl?: string | null;
   avatarData?: string | null;
   githubUsername?: string | null;

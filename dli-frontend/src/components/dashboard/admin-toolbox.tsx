@@ -7,21 +7,27 @@ import {
   CustomPointsModal,
   type CustomPointsMemberOption,
 } from "@/components/dashboard/custom-points-modal";
+import { EditUserModal } from "@/components/dashboard/edit-user-modal";
 import { API_BASE_URL, TASK_CATEGORIES } from "@/config/constants";
 import { TaskModalShell } from "@/components/task-board/task-modal-shell";
 import {
+  type ManagedUserRecord,
+  type ManagedUserRole,
   awardAdminCustomPoints,
   type AwardCustomPointsRequest,
   UnauthorizedError,
+  updateAdminUserRoleAndDesignation,
 } from "@/lib/api";
 
-type OperatorRole = "member" | "admin" | "moderator";
-type ToolboxModal = "task" | "course" | "account" | "custom-points" | null;
-type ToolboxAction = "task" | "course" | "account" | "custom-points" | null;
+type OperatorRole = ManagedUserRole;
+type ToolboxModal = "task" | "course" | "account" | "custom-points" | "edit-user" | null;
+type ToolboxAction = "task" | "course" | "account" | "custom-points" | "edit-user" | null;
 
 interface AdminToolboxProps {
   userRole: OperatorRole;
+  users: ManagedUserRecord[];
   members: CustomPointsMemberOption[];
+  designationSuggestions: string[];
   membersLoading?: boolean;
   onUnauthorized: () => void;
   onSuccess: (message: string) => void;
@@ -43,7 +49,9 @@ function buildEndpoint(path: string) {
 
 export function AdminToolbox({
   userRole,
+  users,
   members,
+  designationSuggestions,
   membersLoading = false,
   onUnauthorized,
   onSuccess,
@@ -83,7 +91,8 @@ export function AdminToolbox({
     name: "",
     email: "",
     srmRegNo: "",
-    role: "member",
+    role: "member" as ManagedUserRole,
+    designation: "",
     password: "",
   });
 
@@ -155,7 +164,9 @@ export function AdminToolbox({
       closeModal();
       onSuccess("CREATE_TASK_COMPLETE");
     } catch (taskError) {
-      setError(taskError instanceof Error ? taskError.message : "Failed to create task.");
+      const message = taskError instanceof Error ? taskError.message : "Failed to create task.";
+      setError(message);
+      onError(message);
     } finally {
       setSubmitting(null);
     }
@@ -217,7 +228,10 @@ export function AdminToolbox({
       closeModal();
       onSuccess("CREATE_COURSE_COMPLETE");
     } catch (courseError) {
-      setError(courseError instanceof Error ? courseError.message : "Failed to create course.");
+      const message =
+        courseError instanceof Error ? courseError.message : "Failed to create course.";
+      setError(message);
+      onError(message);
     } finally {
       setSubmitting(null);
     }
@@ -245,6 +259,7 @@ export function AdminToolbox({
         },
         body: JSON.stringify({
           ...accountForm,
+          designation: accountForm.designation.trim() || undefined,
           password: accountForm.password.trim() || undefined,
         }),
       });
@@ -267,12 +282,55 @@ export function AdminToolbox({
         email: "",
         srmRegNo: "",
         role: "member",
+        designation: "",
         password: "",
       });
       closeModal();
       onSuccess("ACCOUNT_CREATOR_COMPLETE");
     } catch (accountError) {
-      setError(accountError instanceof Error ? accountError.message : "Failed to create account.");
+      const message =
+        accountError instanceof Error ? accountError.message : "Failed to create account.";
+      setError(message);
+      onError(message);
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function submitUserAccessUpdate(payload: {
+    userId: string;
+    role: ManagedUserRole;
+    designation?: string | null;
+  }) {
+    const token = window.localStorage.getItem("token");
+
+    if (!token) {
+      onUnauthorized();
+      return;
+    }
+
+    setSubmitting("edit-user");
+    setError(null);
+
+    try {
+      await updateAdminUserRoleAndDesignation(token, payload.userId, {
+        role: payload.role,
+        designation: payload.designation ?? null,
+      });
+      closeModal();
+      onSuccess("USER_ACCESS_UPDATED");
+    } catch (updateError) {
+      if (updateError instanceof UnauthorizedError) {
+        onUnauthorized();
+        return;
+      }
+
+      const message =
+        updateError instanceof Error
+          ? updateError.message
+          : "Failed to update user role and designation.";
+      setError(message);
+      onError(message);
     } finally {
       setSubmitting(null);
     }
@@ -346,6 +404,15 @@ export function AdminToolbox({
             >
               [ACCOUNT_CREATOR]
             </button>
+            {userRole === "admin" ? (
+              <button
+                type="button"
+                onClick={() => setOpenModal("edit-user")}
+                className="rounded-sm border border-neutral-700 bg-neutral-950 px-4 py-3 font-mono text-xs uppercase tracking-[0.18em] text-zinc-100 transition hover:border-lime-400/30 hover:text-lime-300"
+              >
+                [EDIT_USER_ACCESS]
+              </button>
+            ) : null}
             {userRole === "admin" ? (
               <button
                 type="button"
@@ -666,13 +733,38 @@ export function AdminToolbox({
               <label className="block text-sm font-medium text-zinc-100">Role</label>
               <select
                 value={accountForm.role}
-                onChange={(event) => setAccountForm({ ...accountForm, role: event.target.value })}
+                onChange={(event) =>
+                  setAccountForm({
+                    ...accountForm,
+                    role: event.target.value as ManagedUserRole,
+                  })
+                }
                 className="mt-2 w-full rounded-sm border border-neutral-700 bg-black px-4 py-2 text-sm text-zinc-100"
               >
                 <option value="member">Member</option>
+                <option value="moderator">Moderator</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-100">Designation</label>
+            <input
+              type="text"
+              list="existing-designations-create"
+              value={accountForm.designation}
+              onChange={(event) =>
+                setAccountForm({ ...accountForm, designation: event.target.value })
+              }
+              placeholder="Frontend Dev, AI Lead, Operations Mentor..."
+              className="mt-2 w-full rounded-sm border border-neutral-700 bg-black px-4 py-2 text-sm text-zinc-100 placeholder-neutral-600"
+            />
+            <datalist id="existing-designations-create">
+              {designationSuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
           </div>
 
           <div>
@@ -712,6 +804,16 @@ export function AdminToolbox({
         users={members}
         loading={membersLoading}
         submitting={submitting === "custom-points"}
+        error={error}
+      />
+
+      <EditUserModal
+        open={userRole === "admin" && openModal === "edit-user"}
+        onClose={closeModal}
+        onSubmit={submitUserAccessUpdate}
+        users={users}
+        designationSuggestions={designationSuggestions}
+        submitting={submitting === "edit-user"}
         error={error}
       />
     </>

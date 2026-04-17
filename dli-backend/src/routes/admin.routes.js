@@ -1,5 +1,5 @@
 const express = require("express");
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 const multer = require("multer");
 const router = express.Router();
 const requestController = require("../controllers/request.controller");
@@ -45,7 +45,7 @@ router.get(
   adminController.getUsersLeaderboard
 );
 
-// POST /api/v1/admin/users
+// POST /api/v1/admin/award-points
 router.post(
   "/award-points",
   [authMiddleware, isAdminOnly],
@@ -67,6 +67,28 @@ router.post(
   adminController.awardCustomPoints,
 );
 
+// PUT /api/v1/admin/users/:id/role
+router.put(
+  "/users/:id/role",
+  authMiddleware,
+  isAdminOnly,
+  [
+    param("id").isMongoId().withMessage("A valid user ID is required."),
+    body("role")
+      .exists()
+      .withMessage("role is required.")
+      .isIn(["member", "moderator", "admin"])
+      .withMessage("Role must be member, moderator, or admin."),
+    body("designation")
+      .optional({ nullable: true })
+      .isString()
+      .withMessage("designation must be a string."),
+  ],
+  validateRequest,
+  adminController.updateUserRoleAndDesignation,
+);
+
+// POST /api/v1/admin/users
 router.post(
   "/users",
   authMiddleware,
@@ -77,8 +99,12 @@ router.post(
     body("srmRegNo", "Registration number is required").notEmpty().isString(),
     body("role")
       .optional()
-      .isIn(["member", "admin"])
-      .withMessage("Role must be member or admin."),
+      .isIn(["member", "moderator", "admin"])
+      .withMessage("Role must be member, moderator, or admin."),
+    body("designation")
+      .optional({ nullable: true })
+      .isString()
+      .withMessage("Designation must be a string."),
     body("password")
       .optional()
       .isString()

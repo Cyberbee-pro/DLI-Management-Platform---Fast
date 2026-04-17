@@ -4,6 +4,17 @@ interface ApiErrorPayload {
   message?: string;
 }
 
+export type ManagedUserRole = "member" | "moderator" | "admin";
+
+export interface ManagedUserRecord {
+  _id: string;
+  name: string;
+  email?: string;
+  srmRegNo: string;
+  role: ManagedUserRole;
+  designation?: string | null;
+}
+
 export interface AwardCustomPointsRequest {
   userIds: string[];
   points: number;
@@ -28,6 +39,19 @@ export interface AwardCustomPointsResponse {
         negativeAccrued: number;
       };
     }>;
+  };
+}
+
+export interface UpdateUserRoleAndDesignationRequest {
+  role: ManagedUserRole;
+  designation?: string | null;
+}
+
+export interface UpdateUserRoleAndDesignationResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user: ManagedUserRecord;
   };
 }
 
@@ -98,5 +122,22 @@ export async function awardAdminCustomPoints(
     },
     body: JSON.stringify(payload),
     fallbackMessage: "Failed to award custom points.",
+  });
+}
+
+export async function updateAdminUserRoleAndDesignation(
+  token: string,
+  userId: string,
+  payload: UpdateUserRoleAndDesignationRequest,
+): Promise<UpdateUserRoleAndDesignationResponse> {
+  return fetchApiJson<UpdateUserRoleAndDesignationResponse>({
+    path: `/admin/users/${userId}/role`,
+    token,
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    fallbackMessage: "Failed to update user role and designation.",
   });
 }
