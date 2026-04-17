@@ -42,13 +42,13 @@ function verifyToken(req, res, next) {
 
 /**
  * Validates that the requesting user possesses true administrative privileges.
- * Relies exclusively on standard req.user parsing managed gracefully by `verifyToken` middleware.
+ * This boundary is intentionally strict and rejects any non-admin role, including moderators.
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-function requireAdmin(req, res, next) {
+function isAdminOnly(req, res, next) {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({
       success: false,
@@ -56,7 +56,12 @@ function requireAdmin(req, res, next) {
       code: "FORBIDDEN",
     });
   }
+
   next();
+}
+
+function requireAdmin(req, res, next) {
+  return isAdminOnly(req, res, next);
 }
 
 /**
@@ -81,6 +86,7 @@ function requireMember(req, res, next) {
 
 module.exports = {
   verifyToken,
+  isAdminOnly,
   requireAdmin,
   requireMember,
 };

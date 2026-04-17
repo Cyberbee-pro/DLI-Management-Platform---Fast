@@ -40,7 +40,7 @@ interface DashboardUser {
   name: string;
   email: string;
   srmRegNo: string;
-  role: "member" | "admin";
+  role: "member" | "admin" | "moderator";
   rank: string;
   coursesCompletedCount: number;
   lastLoginAt?: string | null;
@@ -143,7 +143,7 @@ interface NudgeUser {
   _id: string;
   name: string;
   srmRegNo: string;
-  role: "member" | "admin";
+  role: "member" | "admin" | "moderator";
   rank?: string;
   avatarUrl?: string | null;
   linkedinUrl?: string | null;
@@ -1051,8 +1051,22 @@ useEffect(() => {
 
         {user.role === "admin" ? (
           <AdminToolbox
+            userRole={user.role}
+            members={nudgeUsers.map((member) => ({
+              _id: member._id,
+              name: member.name,
+              srmRegNo: member.srmRegNo,
+              rank: member.rank,
+            }))}
+            membersLoading={nudgeLoading}
             onUnauthorized={handleUnauthorized}
             onSuccess={(message) => void handleAdminToolboxSuccess(message)}
+            onError={(message) =>
+              setActionNotice({
+                tone: "error",
+                message,
+              })
+            }
           />
         ) : null}
 

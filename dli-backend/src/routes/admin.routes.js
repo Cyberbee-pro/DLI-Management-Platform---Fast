@@ -4,7 +4,10 @@ const multer = require("multer");
 const router = express.Router();
 const requestController = require("../controllers/request.controller");
 const adminController = require("../controllers/admin.controller");
-const { verifyToken, requireAdmin } = require("../middleware/auth.middleware");
+const {
+  verifyToken: authMiddleware,
+  isAdminOnly,
+} = require("../middleware/auth.middleware");
 const { validateRequest } = require("../middleware/validate");
 
 const importUpload = multer({
@@ -29,24 +32,45 @@ const importUpload = multer({
 // GET /api/v1/admin/requests
 router.get(
   "/requests",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   adminController.getPendingRequests
 );
 
 // GET /api/v1/admin/users
 router.get(
   "/users",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   adminController.getUsersLeaderboard
 );
 
 // POST /api/v1/admin/users
 router.post(
+  "/award-points",
+  [authMiddleware, isAdminOnly],
+  [
+    body("userIds")
+      .isArray({ min: 1 })
+      .withMessage("userIds must be a non-empty array."),
+    body("userIds.*").isMongoId().withMessage("Each user ID must be valid."),
+    body("points")
+      .isFloat({ gt: 0 })
+      .withMessage("points must be a valid positive number."),
+    body("reason")
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage("reason is required."),
+  ],
+  validateRequest,
+  adminController.awardCustomPoints,
+);
+
+router.post(
   "/users",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   [
     body("name", "Name is required").notEmpty().isString(),
     body("email", "Invalid email format").isEmail(),
@@ -68,16 +92,16 @@ router.post(
 // GET /api/v1/admin/audit-feed
 router.get(
   "/audit-feed",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   adminController.getAuditFeed
 );
 
 // PATCH /api/v1/admin/requests/:id
 router.patch(
   "/requests/:id",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   [
     body("action")
       .exists()
@@ -96,8 +120,8 @@ router.patch(
 // POST /api/v1/admin/codes/bulk
 router.post(
   "/codes/bulk",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   [
     body("courseId")
       .exists()
@@ -118,8 +142,8 @@ router.post(
 // POST /api/v1/admin/bulk-users
 router.post(
   "/bulk-users",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   importUpload.single("file"),
   adminController.bulkImportUsers,
 );
@@ -127,8 +151,8 @@ router.post(
 // POST /api/v1/admin/bulk-tasks
 router.post(
   "/bulk-tasks",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   importUpload.single("file"),
   adminController.bulkImportTasks,
 );
@@ -136,8 +160,8 @@ router.post(
 // POST /api/v1/admin/bulk-courses
 router.post(
   "/bulk-courses",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   importUpload.single("file"),
   adminController.bulkImportCourses,
 );
@@ -145,8 +169,8 @@ router.post(
 // POST /api/v1/admin/raise-query
 router.post(
   "/raise-query",
-  verifyToken,
-  requireAdmin,
+  authMiddleware,
+  isAdminOnly,
   [
     body("profileFields")
       .isArray({ min: 1 })
