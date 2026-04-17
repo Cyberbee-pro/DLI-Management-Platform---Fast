@@ -33,8 +33,12 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["member", "admin"],
+      enum: ["member", "moderator", "admin"],
       required: true,
+    },
+    designation: {
+      type: String,
+      default: null,
     },
     subRoles: [
       {

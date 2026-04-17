@@ -18,7 +18,7 @@ export interface CourseRequestMutationResponse {
 
 export interface SessionUser {
   _id: string;
-  role?: "member" | "admin";
+  role?: "member" | "moderator" | "admin";
   srmRegNo?: string;
   name?: string;
 }

@@ -1,7 +1,8 @@
 export interface ShellUser {
   _id: string;
   name: string;
-  role: "member" | "admin";
+  role: "member" | "moderator" | "admin";
+  designation?: string | null;
   avatarUrl?: string | null;
   avatarData?: string | null;
   linkedinUrl?: string | null;

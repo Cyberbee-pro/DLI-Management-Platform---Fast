@@ -254,6 +254,7 @@ export default function AnalyticsPage() {
     email: "",
     srmRegNo: "",
     role: "member",
+    designation: "",
     password: "",
   });
   const [bulkFiles, setBulkFiles] = useState<{
@@ -519,6 +520,7 @@ export default function AnalyticsPage() {
           email: memberForm.email,
           srmRegNo: memberForm.srmRegNo,
           role: memberForm.role,
+          designation: memberForm.designation.trim() || undefined,
           password: memberForm.password.trim() || undefined,
         }),
       });
@@ -535,6 +537,7 @@ export default function AnalyticsPage() {
         email: "",
         srmRegNo: "",
         role: "member",
+        designation: "",
         password: "",
       });
       setSuccessMessage("ACCOUNT_CREATED_SUCCESSFULLY");
@@ -807,9 +810,23 @@ export default function AnalyticsPage() {
                     className="mt-2 w-full rounded-sm border border-neutral-700 bg-neutral-950 px-4 py-2 text-sm text-zinc-100"
                   >
                     <option value="member">Member</option>
+                    <option value="moderator">Moderator</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-100">Designation</label>
+                <input
+                  type="text"
+                  value={memberForm.designation}
+                  onChange={(event) =>
+                    setMemberForm({ ...memberForm, designation: event.target.value })
+                  }
+                  placeholder="Frontend Dev, AI Lead, Operations Mentor..."
+                  className="mt-2 w-full rounded-sm border border-neutral-700 bg-neutral-950 px-4 py-2 text-sm text-zinc-100 placeholder-neutral-600"
+                />
               </div>
 
               <div>

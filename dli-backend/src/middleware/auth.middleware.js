@@ -73,11 +73,14 @@ function requireAdmin(req, res, next) {
  * @param {import('express').NextFunction} next
  */
 function requireMember(req, res, next) {
-  if (!req.user || (req.user.role !== "member" && req.user.role !== "admin")) {
+  if (
+    !req.user ||
+    !["member", "moderator", "admin"].includes(req.user.role)
+  ) {
     return res.status(403).json({
       success: false,
       message:
-        "Access restricted cleanly to authenticated members and administrators.",
+        "Access restricted cleanly to authenticated members, moderators, and administrators.",
       code: "FORBIDDEN",
     });
   }

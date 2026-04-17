@@ -27,6 +27,7 @@ const TASK_CATEGORIES = [
   "Content",
 ];
 const COURSE_LEVELS = ["Beginner", "Intermediate", "Advanced"];
+const USER_ROLES = ["member", "moderator", "admin"];
 
 function normalizeString(value) {
   if (typeof value !== "string") {
@@ -207,14 +208,16 @@ const createUser = async (req, res) => {
       email,
       srmRegNo,
       role = "member",
+      designation,
       password,
     } = req.body;
+    const normalizedDesignation = normalizeString(designation);
 
     // Validate role
-    if (!["member", "admin"].includes(role)) {
+    if (!USER_ROLES.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role. Must be 'member' or 'admin'",
+        message: "Invalid role. Must be 'member', 'moderator', or 'admin'.",
         code: "INVALID_ROLE",
       });
     }
@@ -241,6 +244,7 @@ const createUser = async (req, res) => {
       srmRegNo,
       passwordHash,
       role,
+      designation: normalizedDesignation,
       points: {
         balance: toDecimal128(0),
         totalEarned: toDecimal128(0),
@@ -261,13 +265,17 @@ const createUser = async (req, res) => {
         email: user.email,
         srmRegNo: user.srmRegNo,
         role,
+        designation: user.designation,
       },
     });
+
+    const serializedUser = serializeDocument(user);
+    delete serializedUser.passwordHash;
 
     return res.status(201).json({
       success: true,
       data: {
-        user: serializeDocument(user),
+        user: serializedUser,
         temporaryPassword: provisionedPassword,
         temporaryCredentials: {
           email,
@@ -280,6 +288,88 @@ const createUser = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to create user",
+      code: "INTERNAL_ERROR",
+    });
+  }
+};
+
+/**
+ * Updates the role and designation assigned to an existing user.
+ * This endpoint is intentionally restricted to true administrators.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const updateUserRoleAndDesignation = async (req, res) => {
+  try {
+    const userId = normalizeString(req.params.id);
+    const role = normalizeString(req.body.role);
+    const designation = normalizeString(req.body.designation);
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid user ID is required.",
+        code: "INVALID_USER_ID",
+      });
+    }
+
+    if (!role || !USER_ROLES.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Role must be member, moderator, or admin.",
+        code: "INVALID_ROLE",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+        code: "USER_NOT_FOUND",
+      });
+    }
+
+    const previousRole = user.role;
+    const previousDesignation = user.designation ?? null;
+
+    user.role = role;
+    user.designation = designation;
+
+    await user.save();
+
+    await createAuditLog({
+      action: "USER_ROLE_DESIGNATION_UPDATED",
+      tag: "GOVERNANCE",
+      actor: req.user,
+      target: user._id,
+      message: `${req.user.name} updated access metadata for ${user.name}.`,
+      metadata: {
+        adminId: req.user._id,
+        targetUserId: user._id,
+        previousRole,
+        newRole: user.role,
+        previousDesignation,
+        newDesignation: user.designation,
+      },
+    });
+
+    const serializedUser = serializeDocument(user);
+    delete serializedUser.passwordHash;
+
+    return res.status(200).json({
+      success: true,
+      message: "User role and designation updated successfully.",
+      data: {
+        user: serializedUser,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update user role and designation.",
       code: "INTERNAL_ERROR",
     });
   }
@@ -453,7 +543,7 @@ const getUsersLeaderboard = async (req, res) => {
 
     const users = await User.find({})
       .select(
-        "_id name srmRegNo role rank avatarUrl githubUsername linkedinUrl instagramUrl websiteUrl resumeUrl resumeData points",
+        "_id name email srmRegNo role designation rank avatarUrl githubUsername linkedinUrl instagramUrl websiteUrl resumeUrl resumeData points",
       )
       .sort({ "points.balance": -1 })
       .skip(skip)
@@ -702,10 +792,12 @@ const bulkImportUsers = async (req, res) => {
         continue;
       }
 
-      if (!["member", "admin"].includes(role)) {
+      const designation = normalizeString(record.designation);
+
+      if (!USER_ROLES.includes(role)) {
         validationErrors.push({
           index,
-          message: "role must be member or admin.",
+          message: "role must be member, moderator, or admin.",
         });
         continue;
       }
@@ -720,6 +812,7 @@ const bulkImportUsers = async (req, res) => {
         srmRegNo,
         passwordHash,
         role,
+        designation,
         points: {
           balance: toDecimal128(0),
           totalEarned: toDecimal128(0),
@@ -1002,6 +1095,7 @@ const bulkImportCourses = async (req, res) => {
 
 module.exports = {
   createUser,
+  updateUserRoleAndDesignation,
   awardCustomPoints,
   getPendingRequests,
   getUsersLeaderboard,

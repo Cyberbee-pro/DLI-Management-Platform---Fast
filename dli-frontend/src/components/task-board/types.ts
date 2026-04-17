@@ -25,7 +25,7 @@ export interface ClaimedBySnapshot {
 export interface TaskActorReference {
   _id: string;
   name?: string | null;
-  role?: "member" | "admin" | null;
+  role?: "member" | "moderator" | "admin" | null;
   avatarUrl?: string | null;
   srmRegNo?: string | null;
 }
