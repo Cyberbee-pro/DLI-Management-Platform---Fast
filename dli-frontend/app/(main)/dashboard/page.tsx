@@ -803,6 +803,7 @@ useEffect(() => {
     { label: "Total Spent", value: totalSpent, accent: false },
   ];
   const maxMetric = Math.max(...analyticsMetrics.map((metric) => metric.value), 1);
+  const memberFeaturesVisible = user.role === "member";
   const governanceVisible = Boolean(
     governance?.canReviewTasks || governance?.canReviewCourses,
   );
@@ -933,105 +934,107 @@ useEffect(() => {
               </div>
             </article>
 
-            <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
-              <div className="flex items-center gap-3">
-                <Clock3 className="h-4 w-4 text-lime-300" />
-                <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-400">
-                  Recent Task Activity
-                </p>
-              </div>
+            {memberFeaturesVisible ? (
+              <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
+                <div className="flex items-center gap-3">
+                  <Clock3 className="h-4 w-4 text-lime-300" />
+                  <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-400">
+                    Recent Task Activity
+                  </p>
+                </div>
 
-              <div className="mt-5 space-y-3">
-                {activeTasks.length > 0 ? (
-                  activeTasks.slice(0, 3).map((task) => {
-                    const ownedByCurrentUser = isTaskAssignedToUser(task, user._id);
-                    const transferPending = task.transferRequest?.status === "pending";
-                    const transferApproved = isTransferApprovedForUser(task, user._id);
-                    const transferRequester = resolveActorName(
-                      task.transferRequest?.to ?? null,
-                      "REQUESTING_NODE",
-                    );
+                <div className="mt-5 space-y-3">
+                  {activeTasks.length > 0 ? (
+                    activeTasks.slice(0, 3).map((task) => {
+                      const ownedByCurrentUser = isTaskAssignedToUser(task, user._id);
+                      const transferPending = task.transferRequest?.status === "pending";
+                      const transferApproved = isTransferApprovedForUser(task, user._id);
+                      const transferRequester = resolveActorName(
+                        task.transferRequest?.to ?? null,
+                        "REQUESTING_NODE",
+                      );
 
-                    return (
-                      <div
-                        key={task._id}
-                        className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4"
-                      >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-zinc-100">{task.title}</p>
-                            <div className="mt-2 flex items-center gap-4 text-xs">
-                              <span className="font-mono uppercase tracking-[0.18em] text-zinc-500">
-                                {formatStatus(task.status)}
-                              </span>
-                              <span className="font-mono text-lime-300">
-                                {task.points.effective.toLocaleString()} XP
-                              </span>
+                      return (
+                        <div
+                          key={task._id}
+                          className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4"
+                        >
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-zinc-100">{task.title}</p>
+                              <div className="mt-2 flex items-center gap-4 text-xs">
+                                <span className="font-mono uppercase tracking-[0.18em] text-zinc-500">
+                                  {formatStatus(task.status)}
+                                </span>
+                                <span className="font-mono text-lime-300">
+                                  {task.points.effective.toLocaleString()} XP
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openTaskDetails(task)}
+                                className="rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-300 transition hover:border-lime-400/30 hover:text-lime-400"
+                              >
+                                VIEW DETAILS
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={!ownedByCurrentUser || task.status === "completed"}
+                                onClick={() => openSubmission(task)}
+                                className="rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {ownedByCurrentUser
+                                  ? task.submissionDetails?.url
+                                    ? "EDIT_SUBMISSION"
+                                    : task.status === "claimed"
+                                      ? "SUBMIT TASK"
+                                      : "UNDER REVIEW"
+                                  : "UNDER REVIEW"}
+                              </button>
+
+                              {transferApproved && !ownedByCurrentUser ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAcceptTransfer(task)}
+                                  disabled={
+                                    busyAction?.type === "accept-transfer" &&
+                                    busyAction.taskId === task._id
+                                  }
+                                  className="inline-flex items-center gap-2 rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {busyAction?.type === "accept-transfer" &&
+                                  busyAction.taskId === task._id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                  )}
+                                  ACCEPT TRANSFER
+                                </button>
+                              ) : null}
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openTaskDetails(task)}
-                              className="rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-300 transition hover:border-lime-400/30 hover:text-lime-400"
-                            >
-                              VIEW DETAILS
-                            </button>
-
-                            <button
-                              type="button"
-                              disabled={!ownedByCurrentUser || task.status === "completed"}
-                              onClick={() => openSubmission(task)}
-                              className="rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {ownedByCurrentUser
-                                ? task.submissionDetails?.url
-                                  ? "EDIT_SUBMISSION"
-                                  : task.status === "claimed"
-                                    ? "SUBMIT TASK"
-                                    : "UNDER REVIEW"
-                                : "UNDER REVIEW"}
-                            </button>
-
-                            {transferApproved && !ownedByCurrentUser ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAcceptTransfer(task)}
-                                disabled={
-                                  busyAction?.type === "accept-transfer" &&
-                                  busyAction.taskId === task._id
-                                }
-                                className="inline-flex items-center gap-2 rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {busyAction?.type === "accept-transfer" &&
-                                busyAction.taskId === task._id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <ShieldCheck className="h-3.5 w-3.5" />
-                                )}
-                                ACCEPT TRANSFER
-                              </button>
-                            ) : null}
-                          </div>
+                          {transferPending && ownedByCurrentUser ? (
+                            <div className="mt-4 rounded-sm border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
+                              TRANSFER REQUESTED BY {transferRequester.toUpperCase()} - AWAITING
+                              ADMIN APPROVAL
+                            </div>
+                          ) : null}
                         </div>
-
-                        {transferPending && ownedByCurrentUser ? (
-                          <div className="mt-4 rounded-sm border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-sm text-amber-200">
-                            TRANSFER REQUESTED BY {transferRequester.toUpperCase()} - AWAITING
-                            ADMIN APPROVAL
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-zinc-500">
-                    No active tasks are currently attached to this account.
-                  </p>
-                )}
-              </div>
-            </article>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-zinc-500">
+                      No active tasks are currently attached to this account.
+                    </p>
+                  )}
+                </div>
+              </article>
+            ) : null}
           </div>
         </section>
 
@@ -1355,147 +1358,151 @@ useEffect(() => {
             </div>
           </article>
 
-          <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="rounded-sm border border-lime-400/20 bg-lime-400/10 px-2 py-1 font-mono text-xs uppercase tracking-[0.18em] text-lime-300">
-                Active Module
-              </span>
-              <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
-                {courseRequests.length.toString().padStart(2, "0")} requests
-              </span>
-            </div>
-
-            <h2 className="mt-5 text-lg font-semibold leading-tight text-zinc-50">
-              Course Requests
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Track all your module requests and their approval status.
-            </p>
-
-            <div className="custom-scrollbar mt-6 max-h-72 space-y-3 overflow-y-auto pr-2">
-              {courseRequests.length > 0 ? (
-                courseRequests.map((request) => (
-                  <div
-                    key={request._id}
-                    className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-3"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-zinc-100">
-                          {request.course.title}
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <span
-                            className={[
-                              "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.16em]",
-                              statusClasses(request.status),
-                            ].join(" ")}
-                          >
-                            {formatStatus(request.status)}
-                          </span>
-                          <span className="font-mono text-xs text-zinc-500">
-                            {formatTimestamp(request.requestedAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {request.redemptionCode || request.adminNote ? (
-                      <div className="mt-3 border-t border-neutral-800 pt-3">
-                        <p className="text-xs text-zinc-500">
-                          {request.redemptionCode ? "Redemption Code" : "Admin Note"}
-                        </p>
-                        <p className="mt-1 font-mono text-sm text-lime-300">
-                          {request.redemptionCode ?? request.adminNote}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-center">
-                  <p className="text-sm text-zinc-500">
-                    No course requests yet. Start in the catalogue!
-                  </p>
+          {memberFeaturesVisible ? (
+            <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-sm border border-lime-400/20 bg-lime-400/10 px-2 py-1 font-mono text-xs uppercase tracking-[0.18em] text-lime-300">
+                    Active Module
+                  </span>
+                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
+                    {courseRequests.length.toString().padStart(2, "0")} requests
+                  </span>
                 </div>
+
+                <h2 className="mt-5 text-lg font-semibold leading-tight text-zinc-50">
+                  Course Requests
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">
+                  Track all your module requests and their approval status.
+                </p>
+
+                <div className="custom-scrollbar mt-6 max-h-72 space-y-3 overflow-y-auto pr-2">
+                  {courseRequests.length > 0 ? (
+                    courseRequests.map((request) => (
+                      <div
+                        key={request._id}
+                        className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-zinc-100">
+                              {request.course.title}
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-3">
+                              <span
+                                className={[
+                                  "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.16em]",
+                                  statusClasses(request.status),
+                                ].join(" ")}
+                              >
+                                {formatStatus(request.status)}
+                              </span>
+                              <span className="font-mono text-xs text-zinc-500">
+                                {formatTimestamp(request.requestedAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {request.redemptionCode || request.adminNote ? (
+                          <div className="mt-3 border-t border-neutral-800 pt-3">
+                            <p className="text-xs text-zinc-500">
+                              {request.redemptionCode ? "Redemption Code" : "Admin Note"}
+                            </p>
+                            <p className="mt-1 font-mono text-sm text-lime-300">
+                              {request.redemptionCode ?? request.adminNote}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-center">
+                      <p className="text-sm text-zinc-500">
+                        No course requests yet. Start in the catalogue!
+                      </p>
+                    </div>
+                  )}
+                </div>
+            </article>
+          ) : null}
+        </section>
+
+        {memberFeaturesVisible ? (
+          <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
+              <div className="flex flex-col gap-3 border-b border-neutral-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
+                    Redemption History
+                  </p>
+                  <h2 className="mt-2 text-lg font-semibold text-zinc-50">
+                    Course Request Ledger
+                  </h2>
+                </div>
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  {courseRequests.length.toString().padStart(2, "0")} entries
+                </p>
+              </div>
+
+              {courseRequests.length > 0 ? (
+                <div className="mt-5 overflow-x-auto">
+                  <table className="min-w-full border-separate border-spacing-0">
+                    <thead>
+                      <tr className="text-left">
+                        <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Course
+                        </th>
+                        <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Requested
+                        </th>
+                        <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Cost
+                        </th>
+                        <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Status
+                        </th>
+                        <th className="pb-3 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Redemption
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {courseRequests.map((request) => (
+                        <tr key={request._id} className="border-t border-neutral-800 align-top">
+                          <td className="border-t border-neutral-800 py-4 pr-6 text-sm text-zinc-100">
+                            {request.course.title}
+                          </td>
+                          <td className="border-t border-neutral-800 py-4 pr-6 font-mono text-xs text-zinc-400">
+                            {formatTimestamp(request.requestedAt)}
+                          </td>
+                          <td className="border-t border-neutral-800 py-4 pr-6 font-mono text-sm text-zinc-100">
+                            {formatMetric(request.course.pointsRequired)}
+                          </td>
+                          <td className="border-t border-neutral-800 py-4 pr-6">
+                            <span
+                              className={[
+                                "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.18em]",
+                                statusClasses(request.status),
+                              ].join(" ")}
+                            >
+                              {formatStatus(request.status)}
+                            </span>
+                          </td>
+                          <td className="border-t border-neutral-800 py-4 font-mono text-xs text-zinc-400">
+                            {request.redemptionCode ?? request.adminNote ?? "Pending review"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="mt-5 text-sm text-zinc-500">
+                  No course requests have been logged for this account yet.
+                </p>
               )}
-            </div>
-          </article>
-        </section>
-
-        <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
-          <div className="flex flex-col gap-3 border-b border-neutral-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
-                Redemption History
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-zinc-50">
-                Course Request Ledger
-              </h2>
-            </div>
-            <p className="font-mono text-xs uppercase tracking-[0.22em] text-zinc-500">
-              {courseRequests.length.toString().padStart(2, "0")} entries
-            </p>
-          </div>
-
-          {courseRequests.length > 0 ? (
-            <div className="mt-5 overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead>
-                  <tr className="text-left">
-                    <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
-                      Course
-                    </th>
-                    <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
-                      Requested
-                    </th>
-                    <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
-                      Cost
-                    </th>
-                    <th className="pb-3 pr-6 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
-                      Status
-                    </th>
-                    <th className="pb-3 font-mono text-xs uppercase tracking-[0.2em] text-zinc-500">
-                      Redemption
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courseRequests.map((request) => (
-                    <tr key={request._id} className="border-t border-neutral-800 align-top">
-                      <td className="border-t border-neutral-800 py-4 pr-6 text-sm text-zinc-100">
-                        {request.course.title}
-                      </td>
-                      <td className="border-t border-neutral-800 py-4 pr-6 font-mono text-xs text-zinc-400">
-                        {formatTimestamp(request.requestedAt)}
-                      </td>
-                      <td className="border-t border-neutral-800 py-4 pr-6 font-mono text-sm text-zinc-100">
-                        {formatMetric(request.course.pointsRequired)}
-                      </td>
-                      <td className="border-t border-neutral-800 py-4 pr-6">
-                        <span
-                          className={[
-                            "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.18em]",
-                            statusClasses(request.status),
-                          ].join(" ")}
-                        >
-                          {formatStatus(request.status)}
-                        </span>
-                      </td>
-                      <td className="border-t border-neutral-800 py-4 font-mono text-xs text-zinc-400">
-                        {request.redemptionCode ?? request.adminNote ?? "Pending review"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="mt-5 text-sm text-zinc-500">
-              No course requests have been logged for this account yet.
-            </p>
-          )}
-        </section>
+          </section>
+        ) : null}
       </div>
 
       {actionNotice ? (

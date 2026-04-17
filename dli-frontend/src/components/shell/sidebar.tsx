@@ -85,7 +85,17 @@ export function Sidebar({
   const router = useRouter();
   const avatarLabel = getUserInitials(user?.name);
   const visiblePrimaryNavItems = PRIMARY_NAV_ITEMS.filter(
-    (item) => item.href !== "/analytics" || user?.role === "admin",
+    (item) => {
+      if (item.href === "/analytics") {
+        return user?.role === "admin";
+      }
+
+      if (item.href === "/tasks" || item.href === "/catalogue") {
+        return user?.role === "member";
+      }
+
+      return true;
+    },
   );
 
   useEffect(() => {

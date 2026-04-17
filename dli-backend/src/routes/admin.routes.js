@@ -67,6 +67,28 @@ router.post(
   adminController.awardCustomPoints,
 );
 
+// POST /api/v1/admin/deduct-points
+router.post(
+  "/deduct-points",
+  [authMiddleware, isAdminOnly],
+  [
+    body("userIds")
+      .isArray({ min: 1 })
+      .withMessage("userIds must be a non-empty array."),
+    body("userIds.*").isMongoId().withMessage("Each user ID must be valid."),
+    body("points")
+      .isFloat({ gt: 0 })
+      .withMessage("points must be a valid positive number."),
+    body("reason")
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage("reason is required."),
+  ],
+  validateRequest,
+  adminController.deductCustomPoints,
+);
+
 // PUT /api/v1/admin/users/:id/role
 router.put(
   "/users/:id/role",
