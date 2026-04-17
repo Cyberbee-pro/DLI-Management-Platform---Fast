@@ -4,6 +4,33 @@ interface ApiErrorPayload {
   message?: string;
 }
 
+export interface AwardCustomPointsRequest {
+  userIds: string[];
+  points: number;
+  reason: string;
+}
+
+export interface AwardCustomPointsResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    awardedCount: number;
+    points: number;
+    reason: string;
+    users: Array<{
+      _id: string;
+      name: string;
+      srmRegNo: string;
+      points: {
+        balance: number;
+        totalEarned: number;
+        totalSpent: number;
+        negativeAccrued: number;
+      };
+    }>;
+  };
+}
+
 export class UnauthorizedError extends Error {
   constructor(message = "Your session has expired.") {
     super(message);
@@ -56,4 +83,20 @@ export async function fetchApiJson<T>({
   }
 
   return (payload ?? {}) as T;
+}
+
+export async function awardAdminCustomPoints(
+  token: string,
+  payload: AwardCustomPointsRequest,
+): Promise<AwardCustomPointsResponse> {
+  return fetchApiJson<AwardCustomPointsResponse>({
+    path: "/admin/award-points",
+    token,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    fallbackMessage: "Failed to award custom points.",
+  });
 }

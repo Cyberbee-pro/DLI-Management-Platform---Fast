@@ -3,15 +3,29 @@
 import { useState } from "react";
 import { Loader2, Plus, ShieldPlus, UserPlus } from "lucide-react";
 
+import {
+  CustomPointsModal,
+  type CustomPointsMemberOption,
+} from "@/components/dashboard/custom-points-modal";
 import { API_BASE_URL, TASK_CATEGORIES } from "@/config/constants";
 import { TaskModalShell } from "@/components/task-board/task-modal-shell";
+import {
+  awardAdminCustomPoints,
+  type AwardCustomPointsRequest,
+  UnauthorizedError,
+} from "@/lib/api";
 
-type ToolboxModal = "task" | "course" | "account" | null;
-type ToolboxAction = "task" | "course" | "account" | null;
+type OperatorRole = "member" | "admin" | "moderator";
+type ToolboxModal = "task" | "course" | "account" | "custom-points" | null;
+type ToolboxAction = "task" | "course" | "account" | "custom-points" | null;
 
 interface AdminToolboxProps {
+  userRole: OperatorRole;
+  members: CustomPointsMemberOption[];
+  membersLoading?: boolean;
   onUnauthorized: () => void;
   onSuccess: (message: string) => void;
+  onError: (message: string) => void;
 }
 
 interface AdminUserCreateResponse {
@@ -27,7 +41,14 @@ function buildEndpoint(path: string) {
   return sanitizedBaseUrl ? `${sanitizedBaseUrl}${path}` : "";
 }
 
-export function AdminToolbox({ onUnauthorized, onSuccess }: AdminToolboxProps) {
+export function AdminToolbox({
+  userRole,
+  members,
+  membersLoading = false,
+  onUnauthorized,
+  onSuccess,
+  onError,
+}: AdminToolboxProps) {
   const [openModal, setOpenModal] = useState<ToolboxModal>(null);
   const [submitting, setSubmitting] = useState<ToolboxAction>(null);
   const [error, setError] = useState<string | null>(null);
@@ -257,6 +278,38 @@ export function AdminToolbox({ onUnauthorized, onSuccess }: AdminToolboxProps) {
     }
   }
 
+  async function submitCustomPoints(payload: AwardCustomPointsRequest) {
+    const token = window.localStorage.getItem("token");
+
+    if (!token) {
+      onUnauthorized();
+      return;
+    }
+
+    setSubmitting("custom-points");
+    setError(null);
+
+    try {
+      await awardAdminCustomPoints(token, payload);
+      closeModal();
+      onSuccess("CUSTOM_POINTS_AWARDED");
+    } catch (customPointsError) {
+      if (customPointsError instanceof UnauthorizedError) {
+        onUnauthorized();
+        return;
+      }
+
+      const message =
+        customPointsError instanceof Error
+          ? customPointsError.message
+          : "Failed to award custom points.";
+      setError(message);
+      onError(message);
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   return (
     <>
       <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
@@ -293,6 +346,15 @@ export function AdminToolbox({ onUnauthorized, onSuccess }: AdminToolboxProps) {
             >
               [ACCOUNT_CREATOR]
             </button>
+            {userRole === "admin" ? (
+              <button
+                type="button"
+                onClick={() => setOpenModal("custom-points")}
+                className="rounded-sm border border-lime-400/30 bg-lime-400/10 px-4 py-3 font-mono text-xs uppercase tracking-[0.18em] text-lime-300 transition hover:border-lime-300 hover:bg-lime-400/15 hover:text-lime-200"
+              >
+                + Award Blank Points
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -642,6 +704,16 @@ export function AdminToolbox({ onUnauthorized, onSuccess }: AdminToolboxProps) {
           </button>
         </form>
       </TaskModalShell>
+
+      <CustomPointsModal
+        open={userRole === "admin" && openModal === "custom-points"}
+        onClose={closeModal}
+        onSubmit={submitCustomPoints}
+        users={members}
+        loading={membersLoading}
+        submitting={submitting === "custom-points"}
+        error={error}
+      />
     </>
   );
 }
