@@ -11,7 +11,12 @@ const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
 const { ensureSystemConfig } = require("../utils/system-config");
 const bcrypt = require("bcryptjs");
-const { toDecimal128, addDecimal } = require("../utils/decimal.utils");
+const {
+  toDecimal128,
+  fromDecimal128,
+  addDecimal,
+  subtractDecimal,
+} = require("../utils/decimal.utils");
 const {
   PROFILE_VECTOR_CONFIG,
   getMissingProfileVectors,
@@ -489,6 +494,137 @@ const awardCustomPoints = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to award custom points.",
+      code: "INTERNAL_ERROR",
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+/**
+ * Deducts custom points from one or more users and writes an immutable audit trail per recipient.
+ * Balance is clamped to zero so this flow never drives user accounts negative.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const deductCustomPoints = async (req, res) => {
+  const rawUserIds = Array.isArray(req.body.userIds) ? req.body.userIds : [];
+  const userIds = [...new Set(rawUserIds.map((userId) => normalizeString(userId)).filter(Boolean))];
+  const normalizedReason = normalizeString(req.body.reason);
+  const pointsValue = Number(req.body.points);
+
+  if (userIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Select at least one user to deduct points from.",
+      code: "INVALID_USERS",
+    });
+  }
+
+  if (!Number.isFinite(pointsValue) || pointsValue <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Points must be a valid positive number.",
+      code: "INVALID_POINTS",
+    });
+  }
+
+  if (!normalizedReason) {
+    return res.status(400).json({
+      success: false,
+      message: "Reason is required for custom point deductions.",
+      code: "INVALID_REASON",
+    });
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const recipients = await User.find({
+      _id: { $in: userIds },
+    }).session(session);
+
+    const resolvedUserIds = recipients.map((user) => user._id.toString());
+    const missingUserIds = userIds.filter((userId) => !resolvedUserIds.includes(userId));
+
+    if (missingUserIds.length > 0) {
+      await session.abortTransaction();
+
+      return res.status(404).json({
+        success: false,
+        message: "One or more selected users could not be found.",
+        code: "USER_NOT_FOUND",
+        data: {
+          missingUserIds,
+        },
+      });
+    }
+
+    const deductedUsers = [];
+
+    for (const user of recipients) {
+      const currentBalance = fromDecimal128(user.points.balance);
+      const appliedPoints = Math.min(pointsValue, Math.max(currentBalance, 0));
+      const deductionDelta = toDecimal128(appliedPoints);
+
+      user.points.balance = subtractDecimal(user.points.balance, deductionDelta);
+      user.points.negativeAccrued = addDecimal(user.points.negativeAccrued, deductionDelta);
+
+      await user.save({ session });
+
+      await createAuditLog({
+        action: "CUSTOM_POINTS_DEDUCTED",
+        tag: "GOVERNANCE",
+        actor: req.user,
+        target: user._id,
+        message:
+          appliedPoints > 0
+            ? `${req.user.name} deducted ${appliedPoints} custom point(s) from ${user.name}.`
+            : `${req.user.name} attempted to deduct ${pointsValue} custom point(s) from ${user.name}, but the balance was already zero.`,
+        metadata: {
+          adminId: req.user._id,
+          targetUserId: user._id,
+          requestedPoints: pointsValue,
+          pointsDelta: deductionDelta,
+          appliedPoints,
+          reason: normalizedReason,
+        },
+        session,
+      });
+
+      deductedUsers.push({
+        _id: user._id,
+        name: user.name,
+        srmRegNo: user.srmRegNo,
+        deductedPoints: appliedPoints,
+        requestedPoints: pointsValue,
+        points: user.points,
+      });
+    }
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      success: true,
+      message: "Custom points deducted successfully.",
+      data: {
+        deductedCount: deductedUsers.length,
+        points: pointsValue,
+        reason: normalizedReason,
+        users: serializeDocument(deductedUsers),
+      },
+    });
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to deduct custom points.",
       code: "INTERNAL_ERROR",
     });
   } finally {
@@ -1097,6 +1233,7 @@ module.exports = {
   createUser,
   updateUserRoleAndDesignation,
   awardCustomPoints,
+  deductCustomPoints,
   getPendingRequests,
   getUsersLeaderboard,
   getAuditFeed,

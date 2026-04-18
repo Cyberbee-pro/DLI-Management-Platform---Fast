@@ -1,9 +1,41 @@
 const express = require("express");
 const { body, param } = require("express-validator");
 const router = express.Router();
+const Task = require("../models/Task");
 const taskController = require("../controllers/task.controller");
-const { verifyToken, requireAdmin } = require("../middleware/auth.middleware");
+const {
+  verifyToken,
+  requireAdmin,
+  isModOrAdmin,
+} = require("../middleware/auth.middleware");
 const { validateRequest } = require("../middleware/validate");
+
+async function allowTaskReviewer(req, res, next) {
+  if (["admin", "moderator"].includes(req.user?.role)) {
+    return isModOrAdmin(req, res, next);
+  }
+
+  const task = await Task.findById(req.params.id).select("createdBy");
+
+  if (!task) {
+    return res.status(404).json({
+      success: false,
+      message: "Task not found",
+      code: "TASK_NOT_FOUND",
+    });
+  }
+
+  if (task.createdBy?._id?.toString() !== req.user?._id?.toString()) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Only moderators, administrators, or the task creator can review this deployment.",
+      code: "FORBIDDEN",
+    });
+  }
+
+  return next();
+}
 
 // GET /api/v1/tasks
 router.get("/", verifyToken, taskController.getTasks);
@@ -83,6 +115,7 @@ router.patch(
 router.patch(
   "/:id/submission/approve",
   verifyToken,
+  allowTaskReviewer,
   [param("id").isMongoId().withMessage("Invalid task ID")],
   validateRequest,
   taskController.approveTaskSubmission,
@@ -92,6 +125,7 @@ router.patch(
 router.patch(
   "/:id/submission/reject",
   verifyToken,
+  allowTaskReviewer,
   [
     param("id").isMongoId().withMessage("Invalid task ID"),
     body("reason").optional().isString(),
@@ -146,6 +180,7 @@ router.post(
 router.patch(
   "/:id/approve",
   verifyToken,
+  allowTaskReviewer,
   [param("id").isMongoId().withMessage("Invalid task ID")],
   validateRequest,
   taskController.approveTaskSubmission,

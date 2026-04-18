@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { API_BASE_URL, TASK_CATEGORIES } from "@/config/constants";
+import { clearStoredToken } from "@/lib/session";
 
 interface AuditLogRecord {
   _id: string;
@@ -305,7 +306,7 @@ export default function AnalyticsPage() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            window.localStorage.removeItem("token");
+            clearStoredToken();
             router.replace("/login");
             return;
           }

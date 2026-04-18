@@ -35,11 +35,13 @@ export function HotBountyCard({
   claiming,
   onClaim,
   onInvestigate,
+  showClaimAction = true,
 }: {
   task: TaskRecord;
   claiming?: boolean;
   onClaim?: ((task: TaskRecord) => void) | undefined;
   onInvestigate?: ((task: TaskRecord) => void) | undefined;
+  showClaimAction?: boolean;
 }) {
   const claimed = isTaskClaimed(task);
   const claimDisabled = claiming || !onClaim || task.status !== "open";
@@ -111,15 +113,17 @@ export function HotBountyCard({
             Investigate
           </button>
 
-          <button
-            type="button"
-            onClick={() => onClaim?.(task)}
-            disabled={claimDisabled}
-            className="inline-flex items-center justify-center gap-2 rounded-sm border border-lime-400/30 bg-black px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-lime-400 transition hover:bg-lime-400/10 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {claiming ? "CLAIMING..." : task.status === "open" ? "CLAIM TASK" : "TASK CLAIMED"}
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </button>
+          {showClaimAction ? (
+            <button
+              type="button"
+              onClick={() => onClaim?.(task)}
+              disabled={claimDisabled}
+              className="inline-flex items-center justify-center gap-2 rounded-sm border border-lime-400/30 bg-black px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-lime-400 transition hover:bg-lime-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {claiming ? "CLAIMING..." : task.status === "open" ? "CLAIM TASK" : "TASK CLAIMED"}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

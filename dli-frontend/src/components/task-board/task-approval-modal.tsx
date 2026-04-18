@@ -15,6 +15,7 @@ import type { TaskRecord } from "./types";
 interface TaskApprovalModalProps {
   open: boolean;
   task: TaskRecord | null;
+  canReview?: boolean;
   approving?: boolean;
   rejecting?: boolean;
   onClose: () => void;
@@ -25,6 +26,7 @@ interface TaskApprovalModalProps {
 export function TaskApprovalModal({
   open,
   task,
+  canReview = false,
   approving = false,
   rejecting = false,
   onClose,
@@ -130,31 +132,37 @@ export function TaskApprovalModal({
               <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
                 Submission State
               </p>
-              <p className="mt-2 text-sm text-zinc-100">Awaiting creator/admin verification.</p>
+              <p className="mt-2 text-sm text-zinc-100">
+                Awaiting moderator or administrator verification.
+              </p>
             </div>
           </aside>
         </section>
 
         <div className="flex flex-wrap gap-3 border-t border-neutral-800 pt-5">
-          <button
-            type="button"
-            onClick={() => onApprove(task)}
-            disabled={approving}
-            className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {approving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-            {approving ? "APPROVING..." : "APPROVE_DEPLOYMENT"}
-          </button>
+          {canReview ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onApprove(task)}
+                disabled={approving}
+                className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {approving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                {approving ? "APPROVING..." : "APPROVE_DEPLOYMENT"}
+              </button>
 
-          <button
-            type="button"
-            onClick={() => onReject(task)}
-            disabled={rejecting}
-            className="inline-flex items-center justify-center gap-2 rounded-sm bg-rose-500 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {rejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-            {rejecting ? "REJECTING..." : "REJECT"}
-          </button>
+              <button
+                type="button"
+                onClick={() => onReject(task)}
+                disabled={rejecting}
+                className="inline-flex items-center justify-center gap-2 rounded-sm bg-rose-500 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {rejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                {rejecting ? "REJECTING..." : "REJECT"}
+              </button>
+            </>
+          ) : null}
 
           <button
             type="button"

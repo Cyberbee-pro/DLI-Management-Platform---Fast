@@ -1,0 +1,13 @@
+declare module "@/components/SplitText";
+declare module "@/components/BlurText";
+declare module "@/components/PixelTransition";
+declare module "@/components/MagicBento";
+declare module "@/components/PixelCard";
+declare module "@/components/DotField";
+declare module "@/components/Silk";
+declare module "@/components/DecryptedText";
+declare module "@/components/Aurora";
+declare module "@/components/Beams";
+declare module "@/components/BorderGlow";
+declare module "@/components/PixelTrail";
+declare module "@/components/SoftAurora";

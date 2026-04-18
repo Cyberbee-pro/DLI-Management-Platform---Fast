@@ -15,11 +15,14 @@ export interface ManagedUserRecord {
   designation?: string | null;
 }
 
-export interface AwardCustomPointsRequest {
+export interface CustomPointsRequest {
   userIds: string[];
   points: number;
   reason: string;
 }
+
+export type AwardCustomPointsRequest = CustomPointsRequest;
+export type DeductCustomPointsRequest = CustomPointsRequest;
 
 export interface AwardCustomPointsResponse {
   success: boolean;
@@ -32,6 +35,29 @@ export interface AwardCustomPointsResponse {
       _id: string;
       name: string;
       srmRegNo: string;
+      points: {
+        balance: number;
+        totalEarned: number;
+        totalSpent: number;
+        negativeAccrued: number;
+      };
+    }>;
+  };
+}
+
+export interface DeductCustomPointsResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    deductedCount: number;
+    points: number;
+    reason: string;
+    users: Array<{
+      _id: string;
+      name: string;
+      srmRegNo: string;
+      deductedPoints: number;
+      requestedPoints: number;
       points: {
         balance: number;
         totalEarned: number;
@@ -122,6 +148,22 @@ export async function awardAdminCustomPoints(
     },
     body: JSON.stringify(payload),
     fallbackMessage: "Failed to award custom points.",
+  });
+}
+
+export async function deductAdminCustomPoints(
+  token: string,
+  payload: DeductCustomPointsRequest,
+): Promise<DeductCustomPointsResponse> {
+  return fetchApiJson<DeductCustomPointsResponse>({
+    path: "/admin/deduct-points",
+    token,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    fallbackMessage: "Failed to deduct custom points.",
   });
 }
 

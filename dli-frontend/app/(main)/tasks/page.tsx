@@ -132,6 +132,9 @@ export default function TaskBoardPage() {
     setSessionUserId(token ? parseSessionUser(token)?._id ?? null : null);
   }, [token]);
 
+  const sessionUser = token ? parseSessionUser(token) : null;
+  const isMemberView = sessionUser?.role === "member";
+
   useEffect(() => {
     if (!actionNotice) {
       return;
@@ -466,8 +469,9 @@ export default function TaskBoardPage() {
                   key={task._id}
                   task={task}
                   claiming={busyAction?.type === "claim" && busyAction.taskId === task._id}
-                  onClaim={handleClaimTask}
+                  onClaim={isMemberView ? handleClaimTask : undefined}
                   onInvestigate={openTaskDetails}
+                  showClaimAction={isMemberView}
                 />
               ))}
             </div>
@@ -485,10 +489,11 @@ export default function TaskBoardPage() {
             claimedTasks={myActionableTasks}
             loading={loading}
             currentUserId={sessionUserId}
+            allowActions={isMemberView}
             busyTaskId={busyAction?.type === "accept-transfer" ? busyAction.taskId : null}
             onViewTask={openTaskDetails}
             onOpenSubmit={openSubmission}
-            onAcceptTransfer={handleAcceptTransfer}
+            onAcceptTransfer={isMemberView ? handleAcceptTransfer : undefined}
           />
 
           <article className="panel-surface rounded-sm border border-neutral-800 p-5">
@@ -572,13 +577,14 @@ export default function TaskBoardPage() {
         open={Boolean(selectedTask)}
         task={selectedTask}
         currentUserId={sessionUserId}
+        allowActions={isMemberView}
         busyAction={detailBusyAction}
         onClose={() => setSelectedTaskId(null)}
-        onClaim={handleClaimTask}
-        onRequestTransfer={handleRequestTransfer}
-        onAcceptTransfer={handleAcceptTransfer}
-        onWithdraw={handleWithdrawTask}
-        onOpenSubmit={openSubmission}
+        onClaim={isMemberView ? handleClaimTask : undefined}
+        onRequestTransfer={isMemberView ? handleRequestTransfer : undefined}
+        onAcceptTransfer={isMemberView ? handleAcceptTransfer : undefined}
+        onWithdraw={isMemberView ? handleWithdrawTask : undefined}
+        onOpenSubmit={isMemberView ? openSubmission : undefined}
       />
 
       <TaskSubmissionModal

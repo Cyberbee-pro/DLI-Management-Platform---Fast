@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Plus, ShieldPlus, UserPlus } from "lucide-react";
+import { Loader2, MinusCircle, Plus, ShieldPlus, UserPlus } from "lucide-react";
 
 import {
   CustomPointsModal,
@@ -15,13 +15,29 @@ import {
   type ManagedUserRole,
   awardAdminCustomPoints,
   type AwardCustomPointsRequest,
+  deductAdminCustomPoints,
+  type DeductCustomPointsRequest,
   UnauthorizedError,
   updateAdminUserRoleAndDesignation,
 } from "@/lib/api";
 
 type OperatorRole = ManagedUserRole;
-type ToolboxModal = "task" | "course" | "account" | "custom-points" | "edit-user" | null;
-type ToolboxAction = "task" | "course" | "account" | "custom-points" | "edit-user" | null;
+type ToolboxModal =
+  | "task"
+  | "course"
+  | "account"
+  | "custom-points"
+  | "deduct-points"
+  | "edit-user"
+  | null;
+type ToolboxAction =
+  | "task"
+  | "course"
+  | "account"
+  | "custom-points"
+  | "deduct-points"
+  | "edit-user"
+  | null;
 
 interface AdminToolboxProps {
   userRole: OperatorRole;
@@ -368,6 +384,38 @@ export function AdminToolbox({
     }
   }
 
+  async function submitPointDeduction(payload: DeductCustomPointsRequest) {
+    const token = window.localStorage.getItem("token");
+
+    if (!token) {
+      onUnauthorized();
+      return;
+    }
+
+    setSubmitting("deduct-points");
+    setError(null);
+
+    try {
+      await deductAdminCustomPoints(token, payload);
+      closeModal();
+      onSuccess("CUSTOM_POINTS_DEDUCTED");
+    } catch (customPointsError) {
+      if (customPointsError instanceof UnauthorizedError) {
+        onUnauthorized();
+        return;
+      }
+
+      const message =
+        customPointsError instanceof Error
+          ? customPointsError.message
+          : "Failed to deduct custom points.";
+      setError(message);
+      onError(message);
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
   return (
     <>
       <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
@@ -420,6 +468,16 @@ export function AdminToolbox({
                 className="rounded-sm border border-lime-400/30 bg-lime-400/10 px-4 py-3 font-mono text-xs uppercase tracking-[0.18em] text-lime-300 transition hover:border-lime-300 hover:bg-lime-400/15 hover:text-lime-200"
               >
                 + Award Blank Points
+              </button>
+            ) : null}
+            {userRole === "admin" ? (
+              <button
+                type="button"
+                onClick={() => setOpenModal("deduct-points")}
+                className="inline-flex items-center gap-2 rounded-sm border border-rose-400/30 bg-rose-400/10 px-4 py-3 font-mono text-xs uppercase tracking-[0.18em] text-rose-200 transition hover:border-rose-300 hover:bg-rose-400/15 hover:text-rose-100"
+              >
+                <MinusCircle className="h-3.5 w-3.5" />
+                - Deduct Points
               </button>
             ) : null}
           </div>
@@ -799,11 +857,23 @@ export function AdminToolbox({
 
       <CustomPointsModal
         open={userRole === "admin" && openModal === "custom-points"}
+        mode="award"
         onClose={closeModal}
         onSubmit={submitCustomPoints}
         users={members}
         loading={membersLoading}
         submitting={submitting === "custom-points"}
+        error={error}
+      />
+
+      <CustomPointsModal
+        open={userRole === "admin" && openModal === "deduct-points"}
+        mode="deduct"
+        onClose={closeModal}
+        onSubmit={submitPointDeduction}
+        users={members}
+        loading={membersLoading}
+        submitting={submitting === "deduct-points"}
         error={error}
       />
 

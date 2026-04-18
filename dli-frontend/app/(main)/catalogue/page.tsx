@@ -18,6 +18,7 @@ import {
 import { UnauthorizedError } from "@/lib/api";
 import { clearStoredToken, useSessionToken } from "@/lib/session";
 import { dispatchShellProfileRefresh } from "@/lib/session-events";
+import { decodeSessionToken } from "@/lib/session-token";
 
 type CatalogueCourseState = "none" | "pending" | "approved" | "completed";
 
@@ -141,6 +142,8 @@ export default function CataloguePage() {
   const courses = coursesData ?? [];
   const myRequests = myRequestsData ?? [];
   const userBalance = userBalanceData ?? 0;
+  const sessionRole = token ? decodeSessionToken(token)?.role ?? null : null;
+  const isMemberView = sessionRole === "member";
   const loading =
     !ready ||
     (Boolean(token) &&
@@ -303,8 +306,9 @@ export default function CataloguePage() {
               Premium <span className="text-lime-400">DLI</span> Courses
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-neutral-400">
-              Expand your expertise with curated courses from industry leaders. Use your earned XP
-              to request access to premium learning content.
+              {isMemberView
+                ? "Expand your expertise with curated courses from industry leaders. Use your earned XP to request access to premium learning content."
+                : "Browse the active learning catalogue and current request states in view-only mode."}
             </p>
           </div>
 
@@ -468,6 +472,10 @@ export default function CataloguePage() {
                         <div className="mt-4 inline-flex w-full items-center justify-center rounded-sm border border-lime-400/30 bg-lime-400/10 px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.15em] text-lime-300">
                           MISSION_ACCOMPLISHED
                         </div>
+                      ) : !isMemberView ? (
+                        <div className="mt-4 inline-flex w-full items-center justify-center rounded-sm border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.15em] text-neutral-400">
+                          VIEW_ONLY_ACCESS
+                        </div>
                       ) : (
                         <button
                           onClick={() => !isClaimLocked && handleRequestAccess(course._id)}
@@ -622,21 +630,23 @@ export default function CataloguePage() {
                           [LAUNCH_MODULE]
                         </a>
 
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkCompleted(request._id)}
-                          disabled={completingRequests.has(request._id)}
-                          className="inline-flex items-center justify-center rounded-sm border border-neutral-700 bg-black px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.15em] text-zinc-100 transition hover:border-lime-400/30 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {completingRequests.has(request._id) ? (
-                            <>
-                              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                              MARKING...
-                            </>
-                          ) : (
-                            "[MARK_COMPLETED]"
-                          )}
-                        </button>
+                        {isMemberView ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleMarkCompleted(request._id)}
+                            disabled={completingRequests.has(request._id)}
+                            className="inline-flex items-center justify-center rounded-sm border border-neutral-700 bg-black px-3 py-2 font-mono text-xs font-semibold uppercase tracking-[0.15em] text-zinc-100 transition hover:border-lime-400/30 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {completingRequests.has(request._id) ? (
+                              <>
+                                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                MARKING...
+                              </>
+                            ) : (
+                              "[MARK_COMPLETED]"
+                            )}
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
 

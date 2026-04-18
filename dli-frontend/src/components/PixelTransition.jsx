@@ -25,7 +25,7 @@ function PixelTransition({
     if (typeof window !== 'undefined') {
       const touchDevice =
         'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
-      setIsTouchDevice(touchDevice);
+      setTimeout(() => setIsTouchDevice(touchDevice), 0);
     }
   }, []);
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Terminal } from "lucide-react";
 
 import { API_BASE_URL } from "@/config/constants";
+import { getStoredToken, storeStoredToken } from "@/lib/session";
 
 interface AuthApiResponse {
   success: boolean;
@@ -28,7 +29,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const existingToken = window.localStorage.getItem("token");
+    const existingToken = getStoredToken();
 
     if (existingToken) {
       router.replace("/dashboard");
@@ -73,7 +74,7 @@ export default function LoginPage() {
         throw new Error("Login succeeded, but the backend did not return a token.");
       }
 
-      window.localStorage.setItem("token", token);
+      storeStoredToken(token);
       router.push("/dashboard");
     } catch (loginError) {
       setError(
@@ -95,7 +96,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-white">F.A.S.T. DLI</h1>
           <p className="mt-2 text-sm text-neutral-400">
-            Direct Liaison Interface // Active Node
+            Deep Leaarning Institute // Active Node
           </p>
         </div>
 

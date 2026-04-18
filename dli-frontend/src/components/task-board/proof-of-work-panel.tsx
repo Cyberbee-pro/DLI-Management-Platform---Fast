@@ -14,6 +14,7 @@ interface ProofOfWorkPanelProps {
   claimedTasks: TaskRecord[];
   loading: boolean;
   currentUserId: string | null;
+  allowActions?: boolean;
   busyTaskId?: string | null;
   onViewTask: (task: TaskRecord) => void;
   onOpenSubmit: (task: TaskRecord) => void;
@@ -24,6 +25,7 @@ export function ProofOfWorkPanel({
   claimedTasks,
   loading,
   currentUserId,
+  allowActions = true,
   busyTaskId = null,
   onViewTask,
   onOpenSubmit,
@@ -83,7 +85,7 @@ export function ProofOfWorkPanel({
                       VIEW DETAILS
                     </button>
 
-                    {ownedByCurrentUser ? (
+                    {allowActions && ownedByCurrentUser ? (
                       <>
                         <button
                           type="button"
@@ -109,7 +111,7 @@ export function ProofOfWorkPanel({
                       </>
                     ) : null}
 
-                    {transferApproved && !ownedByCurrentUser ? (
+                    {allowActions && transferApproved && !ownedByCurrentUser ? (
                       <button
                         type="button"
                         onClick={() => onAcceptTransfer?.(task)}

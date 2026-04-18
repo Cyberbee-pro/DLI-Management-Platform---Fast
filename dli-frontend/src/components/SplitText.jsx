@@ -33,10 +33,10 @@ const SplitText = ({
 
   useEffect(() => {
     if (document.fonts.status === 'loaded') {
-      setFontsLoaded(true);
+      setTimeout(() => setFontsLoaded(true), 0);
     } else {
       document.fonts.ready.then(() => {
-        setFontsLoaded(true);
+        setTimeout(() => setFontsLoaded(true), 0);
       });
     }
   }, []);

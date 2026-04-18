@@ -60,6 +60,27 @@ function isAdminOnly(req, res, next) {
   next();
 }
 
+/**
+ * Validates that the requester is either a moderator or an administrator.
+ * This is the shared management boundary for review and governance features
+ * that should remain above standard member permissions without becoming full admin-only.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function isModOrAdmin(req, res, next) {
+  if (!req.user || !["admin", "moderator"].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: "Access restricted to moderators and administrators.",
+      code: "FORBIDDEN",
+    });
+  }
+
+  next();
+}
+
 function requireAdmin(req, res, next) {
   return isAdminOnly(req, res, next);
 }
@@ -90,6 +111,7 @@ function requireMember(req, res, next) {
 module.exports = {
   verifyToken,
   isAdminOnly,
+  isModOrAdmin,
   requireAdmin,
   requireMember,
 };
