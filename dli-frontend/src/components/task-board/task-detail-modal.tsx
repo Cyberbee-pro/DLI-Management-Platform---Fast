@@ -28,6 +28,7 @@ interface TaskDetailModalProps {
   open: boolean;
   task: TaskRecord | null;
   currentUserId: string | null;
+  allowActions?: boolean;
   busyAction?: BusyAction;
   onClose: () => void;
   onClaim?: (task: TaskRecord) => void;
@@ -49,6 +50,7 @@ export function TaskDetailModal({
   open,
   task,
   currentUserId,
+  allowActions = true,
   busyAction = null,
   onClose,
   onClaim,
@@ -82,6 +84,10 @@ export function TaskDetailModal({
   const withdrawDisabled = safeTask.status !== "claimed";
 
   function renderPrimaryActions() {
+    if (!allowActions) {
+      return null;
+    }
+
     if (!isClaimed) {
       return (
         <button

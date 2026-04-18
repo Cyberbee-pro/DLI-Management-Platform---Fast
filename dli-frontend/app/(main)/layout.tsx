@@ -154,6 +154,7 @@ export default function MainLayout({
         <MobileNavigation
           isOpen={mobileNavigationOpen}
           onToggle={() => setMobileNavigationOpen((current) => !current)}
+          user={shellUser}
         />
 
         <div className="flex min-h-[calc(100vh-5rem)] flex-col">

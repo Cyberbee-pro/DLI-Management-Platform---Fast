@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { API_BASE_URL } from "@/config/constants";
+import { clearStoredToken } from "@/lib/session";
 import { dispatchShellProfileRefresh } from "@/lib/session-events";
 
 interface AccountUser {
@@ -125,7 +126,7 @@ export default function AccountPage() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            window.localStorage.removeItem("token");
+            clearStoredToken();
             router.replace("/login");
             return;
           }
@@ -270,7 +271,7 @@ export default function AccountPage() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          window.localStorage.removeItem("token");
+          clearStoredToken();
           router.replace("/login");
           return;
         }

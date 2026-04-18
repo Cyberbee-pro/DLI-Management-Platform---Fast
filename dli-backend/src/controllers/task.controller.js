@@ -53,7 +53,7 @@ function isTaskReviewer(task, user) {
     return false;
   }
 
-  if (user.role === "admin") {
+  if (user.role === "admin" || user.role === "moderator") {
     return true;
   }
 
@@ -125,7 +125,8 @@ async function completeTaskSubmission(taskId, reviewer) {
         statusCode: 403,
         payload: {
           success: false,
-          message: "Only administrators or the task creator can approve this deployment.",
+          message:
+            "Only moderators, administrators, or the task creator can approve this deployment.",
           code: "FORBIDDEN",
         },
       };
@@ -910,7 +911,8 @@ exports.rejectTaskSubmission = async (req, res, next) => {
     if (!isTaskReviewer(task, req.user)) {
       return res.status(403).json({
         success: false,
-        message: "Only administrators or the task creator can reject this deployment.",
+        message:
+          "Only moderators, administrators, or the task creator can reject this deployment.",
         code: "FORBIDDEN",
       });
     }

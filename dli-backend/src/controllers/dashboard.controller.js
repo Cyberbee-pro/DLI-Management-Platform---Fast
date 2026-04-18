@@ -52,7 +52,7 @@ exports.getMyDashboard = async (req, res, next) => {
     }
 
     const governanceTaskFilter =
-      user.role === "admin"
+      user.role === "admin" || user.role === "moderator"
         ? { status: "in_review" }
         : {
             status: "in_review",
@@ -98,7 +98,9 @@ exports.getMyDashboard = async (req, res, next) => {
       serializeTaskWithSubmission(task),
     );
     const canReviewTasks =
-      user.role === "admin" || serializedPendingTaskApprovals.length > 0;
+      user.role === "admin" ||
+      user.role === "moderator" ||
+      serializedPendingTaskApprovals.length > 0;
     const canReviewCourses = user.role === "admin";
 
     res.status(200).json({

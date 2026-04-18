@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/config/constants";
+import { decodeSessionToken } from "@/lib/session-token";
 
 import type { TaskRecord, TasksApiResponse } from "./types";
 
@@ -47,33 +48,7 @@ function buildAdminRequestEndpoint(requestId: string): string {
 }
 
 export function parseSessionUser(token: string): SessionUser | null {
-  try {
-    const [, payload] = token.split(".");
-
-    if (!payload) {
-      return null;
-    }
-
-    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const paddedPayload = normalizedPayload.padEnd(
-      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
-      "=",
-    );
-    const decodedPayload = JSON.parse(window.atob(paddedPayload));
-
-    if (!decodedPayload?._id) {
-      return null;
-    }
-
-    return {
-      _id: decodedPayload._id,
-      role: decodedPayload.role,
-      srmRegNo: decodedPayload.srmRegNo,
-      name: decodedPayload.name,
-    };
-  } catch {
-    return null;
-  }
+  return decodeSessionToken(token);
 }
 
 export async function fetchTasksFromApi({

@@ -7,6 +7,7 @@ const adminController = require("../controllers/admin.controller");
 const {
   verifyToken: authMiddleware,
   isAdminOnly,
+  isModOrAdmin,
 } = require("../middleware/auth.middleware");
 const { validateRequest } = require("../middleware/validate");
 
@@ -41,7 +42,7 @@ router.get(
 router.get(
   "/users",
   authMiddleware,
-  isAdminOnly,
+  isModOrAdmin,
   adminController.getUsersLeaderboard
 );
 
@@ -218,7 +219,7 @@ router.post(
 router.post(
   "/raise-query",
   authMiddleware,
-  isAdminOnly,
+  isModOrAdmin,
   [
     body("profileFields")
       .isArray({ min: 1 })
