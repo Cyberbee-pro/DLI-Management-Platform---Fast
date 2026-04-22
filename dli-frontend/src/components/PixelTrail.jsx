@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { shaderMaterial, useTrailTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -82,14 +82,12 @@ function Scene({ gridSize, trailSize, maxAge, interpolate, easingFunction, pixel
 
   useEffect(() => {
     if (trail) {
-      // eslint-disable-next-line react-hooks/immutability
+      /* eslint-disable react-hooks/immutability */
       trail.minFilter = THREE.NearestFilter;
-      // eslint-disable-next-line react-hooks/immutability
       trail.magFilter = THREE.NearestFilter;
-      // eslint-disable-next-line react-hooks/immutability
       trail.wrapS = THREE.ClampToEdgeWrapping;
-      // eslint-disable-next-line react-hooks/immutability
       trail.wrapT = THREE.ClampToEdgeWrapping;
+      /* eslint-enable react-hooks/immutability */
     }
   }, [trail]);
 

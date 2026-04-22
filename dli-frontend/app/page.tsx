@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, type RefObject } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useSpring, useMotionValueEvent } from "framer-motion";
 import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingUp } from "lucide-react";
@@ -51,11 +52,12 @@ function EventPixelCard({ src, alt, label, alwaysColorful = false }: { src: stri
     <div className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl cursor-target pointer-events-auto">
       
       {/* ⚡ Conditional styling based on `alwaysColorful` prop */}
-      <img 
-        src={src} 
-        alt={alt} 
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(max-width: 1024px) 100vw, 50vw"
         className={`w-full h-full object-cover block transition-all duration-700 group-hover:scale-105 ${alwaysColorful ? '' : 'grayscale group-hover:grayscale-0'}`} 
-        loading="lazy" 
       />
 
       {/* ⚡ The Gradient: Creates a dark bottom shadow so the white text is always readable */}
@@ -94,7 +96,7 @@ export default function BrilliantLanding() {
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
-  const { scrollYProgress, scrollY } = useScroll({
+  const { scrollY } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });

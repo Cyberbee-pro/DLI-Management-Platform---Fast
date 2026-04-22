@@ -144,7 +144,6 @@ export default function LoginPage() {
   bandWidth={17.5}
   transparent
   autoRotate={0}
-  color="#A855F7"
   className=""
   style={{}}
 />
