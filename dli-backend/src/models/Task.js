@@ -48,6 +48,12 @@ const taskSchema = new mongoose.Schema(
     requiresModApproval: {
       type: Boolean,
       default: true,
+      validate: {
+        validator(value) {
+          return this.requiresAdminApproval || value;
+        },
+        message: "At least one approval routing level (Admin or Mod) must be enabled",
+      },
     },
     status: {
       type: String,
@@ -213,16 +219,6 @@ const taskSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
-
-taskSchema.pre("validate", function validateApprovalRouting(next) {
-  if (!this.requiresAdminApproval && !this.requiresModApproval) {
-    const message = "At least one approval routing level (Admin or Mod) must be enabled";
-    this.invalidate("requiresAdminApproval", message);
-    this.invalidate("requiresModApproval", message);
-  }
-
-  next();
-});
 
 // Indexes matching exact lookup needs defined in Schema.md
 taskSchema.index({ status: 1 });

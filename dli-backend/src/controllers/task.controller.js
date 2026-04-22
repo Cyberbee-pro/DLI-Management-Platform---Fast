@@ -102,6 +102,30 @@ function recordSubmission(task, { fileUrl, comment }) {
   };
 }
 
+function normalizeApprovalFlag(value, fallback) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+
+  if (typeof value === "string") {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (["true", "1", "yes", "y", "on"].includes(normalizedValue)) {
+      return true;
+    }
+
+    if (["false", "0", "no", "n", "off"].includes(normalizedValue)) {
+      return false;
+    }
+  }
+
+  throw new TypeError("Approval routing flags must be boolean.");
+}
+
 async function completeTaskSubmission(taskId, reviewer) {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -334,6 +358,22 @@ exports.createTask = async (req, res, next) => {
     const baseNum = Number(points?.base);
     const multiplierNum =
       points?.multiplier !== undefined ? Number(points.multiplier) : 1.0;
+    const normalizedRequiresAdminApproval = normalizeApprovalFlag(
+      requiresAdminApproval,
+      false,
+    );
+    const normalizedRequiresModApproval = normalizeApprovalFlag(
+      requiresModApproval,
+      true,
+    );
+
+    if (!normalizedRequiresAdminApproval && !normalizedRequiresModApproval) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one approval routing level (Admin or Mod) must be enabled",
+        code: "VALIDATION_ERROR",
+      });
+    }
 
     const effectiveNum = baseNum * multiplierNum;
 
@@ -354,8 +394,8 @@ exports.createTask = async (req, res, next) => {
       tags: tags || [],
       projectId: projectId || null,
       repoUrl: repoUrl || null,
-      requiresAdminApproval: requiresAdminApproval === true,
-      requiresModApproval: requiresModApproval !== false,
+      requiresAdminApproval: normalizedRequiresAdminApproval,
+      requiresModApproval: normalizedRequiresModApproval,
       createdBy: {
         _id: req.user._id,
         name: req.user.name,
@@ -384,6 +424,14 @@ exports.createTask = async (req, res, next) => {
     });
   } catch (error) {
     if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    if (error instanceof TypeError) {
       return res.status(400).json({
         success: false,
         message: error.message,
