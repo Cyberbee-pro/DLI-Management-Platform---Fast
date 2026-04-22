@@ -7,6 +7,7 @@ import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingU
 import DecryptedText from '@/components/DecryptedText';
 
 // Premium Animations & Backgrounds
+import TargetCursor from '@/components/TargetCursor';
 import SplitText from "@/components/SplitText";
 import BlurText from "@/components/BlurText";
 import PixelTransition from "@/components/PixelTransition";
@@ -51,7 +52,8 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
 
   return (
     <div 
-      className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl pointer-events-auto"
+      // ⚡ FIX: Added cursor-target directly to the card so the TargetCursor reacts to it
+      className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl cursor-target pointer-events-auto"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -65,7 +67,7 @@ function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: 
       </div>
 
       {isHovered && (
-        <div className="absolute inset-0 z-10">
+        <div className="absolute inset-0 z-10 pointer-events-none">
           <PixelTransition
             firstContent={
               <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -100,7 +102,6 @@ export default function BrilliantLanding() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // ⚡ FIX: Delay setMounted to avoid synchronous setState in effect (ESLint error)
     setTimeout(() => setMounted(true), 0);
     const checkDevice = () => setIsLowTierDevice(window.innerWidth < 768);
     checkDevice();
@@ -129,10 +130,17 @@ export default function BrilliantLanding() {
   const tMotion = useStaggeredCluster(teamRef);
 
   return (
-    // ⚡ FIX 1: Removed overflow-clip and overflow-x-hidden from the root to restore sticky behavior!
     <div ref={containerRef} className="relative bg-black text-white selection:bg-lime-500/30 font-sans min-h-screen">
       
-      {/* ⚡ CANVAS FIX: using fixed inset-0 prevents horizontal scrollbar issues */}
+      {/* TargetCursor placed at root level */}
+      <TargetCursor 
+        spinDuration={4.3}
+        hideDefaultCursor
+        parallaxOn
+        hoverDuration={0.3}
+      />
+      
+      {/* DotField Background */}
       {mounted && !isLowTierDevice && (
         <div className="fixed inset-0 z-[0] opacity-80 pointer-events-auto">
           <DotField
@@ -152,7 +160,7 @@ export default function BrilliantLanding() {
         </div>
       )}
 
-      {/* 1. THE SHUTTER (z-[100]) */}
+      {/* 1. THE SHUTTER */}
       <motion.div style={{ y: shutterY }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-center px-4 border-b border-lime-500/20 shadow-[0_15px_40px_rgba(0,0,0,0.9)] md:shadow-[0_30px_100px_rgba(0,0,0,0.9)] will-change-transform transform-gpu overflow-hidden pointer-events-none">
         
         {mounted && !isLowTierDevice && (
@@ -161,14 +169,14 @@ export default function BrilliantLanding() {
           </div>
         )}
 
-        <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center will-change-transform transform-gpu relative z-10">
-          <div className="mb-6">
+        <motion.div style={{ scale: logoScale, opacity: logoOpacity }} className="flex flex-col items-center will-change-transform transform-gpu relative z-10 pointer-events-auto cursor-target">
+          <div className="mb-6 pointer-events-none">
             <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 20H80V35H35V45H70V60H35V80H20V20Z" fill="white" />
               <rect x="75" y="20" width="5" height="60" fill="#a3e635" />
             </svg>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-8 pointer-events-none">
             <SplitText text="FAST" className="text-5xl md:text-8xl font-black tracking-tighter italic" delay={40} duration={1.2} ease="power3.out" splitType="chars" from={{ opacity: 0, y: 40 }} to={{ opacity: 1, y: 0 }} />
             <span className="text-5xl md:text-8xl font-black tracking-tighter not-italic text-neutral-800">
               <SplitText text="X" className="text-5xl md:text-8xl font-black tracking-tighter not-italic text-neutral-800" delay={80} duration={1.2} ease="power3.out" splitType="chars" from={{ opacity: 0, y: -20 }} to={{ opacity: 1, y: 0 }} />
@@ -177,7 +185,7 @@ export default function BrilliantLanding() {
           </div>
         </motion.div>
 
-        <motion.div style={{ opacity: logoOpacity }} className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50 will-change-transform transform-gpu z-10">
+        <motion.div style={{ opacity: logoOpacity }} className="absolute bottom-12 flex flex-col items-center gap-2 opacity-50 will-change-transform transform-gpu z-10 pointer-events-none">
           <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="flex flex-col items-center gap-2">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-lime-400">Initiate Scroll Override</span>
             <ChevronDown size={16} className="text-lime-400" />
@@ -187,19 +195,21 @@ export default function BrilliantLanding() {
       </motion.div>
 
       {/* ⚡ CONTENT LAYER (z-[10]) ⚡ */}
-      <div className="relative z-[10] w-full pointer-events-none">
+      <div className="relative z-10 w-full pointer-events-none">
         
         <div className="h-[60vh] md:h-[80vh] w-full" />
 
         {/* 2. THE TRANSITION & EVENT GALLERY */}
         <section className="relative px-6 pb-20 md:pb-32 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          {/* ⚡ FIX 2: Added pointer-events-auto back to the sticky container! */}
-          <div className="relative lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0 pointer-events-auto">
-            <p className="text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
+          {/* ⚡ FIX: Removed pointer-events-auto from this wrapper so empty space doesn't block the DotField */}
+          <div className="relative flex flex-col lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0">
+            
+            {/* ⚡ FIX: Applied cursor-target and pointer-events-auto directly to the text elements */}
+            <p className="cursor-target pointer-events-auto inline-block text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
               {"// Operational Excellence"}
             </p>
-            <h2 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] flex flex-col gap-2 min-h-[160px] md:min-h-[220px]">
+            <h2 className="cursor-target pointer-events-auto text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] flex flex-col gap-2 min-h-[160px] md:min-h-[220px]">
               {isHeadlineReady && (
                 <>
                   <BlurText text="Deploying the" delay={50} animateBy="words" direction="top" />
@@ -208,23 +218,24 @@ export default function BrilliantLanding() {
                 </>
               )}
             </h2>
-            <p className="text-lg text-neutral-500 max-w-md font-light leading-relaxed">
+            <p className="cursor-target pointer-events-auto text-lg text-neutral-500 max-w-md font-light leading-relaxed">
               From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
             </p>
             
-            <Link href="/login" className="group inline-flex items-center gap-4 px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white">
+            <Link href="/login" className="group inline-flex items-center gap-4 w-fit px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white cursor-target pointer-events-auto">
               <div className="flex text-black group-hover:text-white items-center gap-2">
                 AUTHENTICATE TERMINAL <ArrowRight size={18} />
               </div>
             </Link>
 
-            <div style={{ marginTop: '4rem' }} className="text-lime-400 min-h-[24px]">
+            <div className="cursor-target pointer-events-auto mt-14 text-lime-400 w-fit min-h-[24px] inline-block">
               {mounted && (
                 <DecryptedText text="Try hovering over the pictures" animateOn="view" revealDirection="start" sequential useOriginalCharsOnly={false} />
               )}
             </div>
           </div>
 
+          {/* Event Cards Panel */}
           <div className="relative pb-[15vh] lg:pb-[30vh] pt-12 lg:pt-32 w-full max-w-5xl mx-auto z-10">
             <div ref={fastathonRef} className="relative h-[80vh] lg:h-[100vh]">
               <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
@@ -286,18 +297,18 @@ export default function BrilliantLanding() {
         <section className="px-6 py-20 md:py-32 relative z-10 bg-transparent">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-              <h3 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
+              <h3 className="cursor-target pointer-events-auto text-5xl md:text-7xl font-bold tracking-tighter text-white">
                 The Ecosystem.
               </h3>
-              <p className="text-neutral-400 max-w-sm text-sm">
+              <p className="cursor-target pointer-events-auto text-neutral-400 max-w-sm text-sm">
                 Integrated tools designed for the next generation of artificial intelligence specialists.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
               
-              <Link href="/tasks" className="md:col-span-2 block group pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+              <Link href="/tasks" className="md:col-span-2 block group cursor-target pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div className="flex justify-between items-start">
                     <ClipboardList className="h-8 w-8 text-lime-400 mb-4" />
                     <span className="text-[10px] font-mono border border-lime-500/50 text-lime-400 bg-lime-500/10 px-3 py-1.5 rounded-full uppercase tracking-widest">
@@ -323,8 +334,8 @@ export default function BrilliantLanding() {
                 </MagicBento>
               </Link>
 
-              <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+              <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group cursor-target pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <GraduationCap className="h-8 w-8 text-lime-400 " />
                   <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
                   <p className="text-neutral-400 text-sm ">
@@ -351,8 +362,8 @@ export default function BrilliantLanding() {
                 </MagicBento>
               </Link>
 
-              <Link href="/registry" className="md:col-span-1 block group cursor-pointer pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+              <Link href="/registry" className="md:col-span-1 block group cursor-pointer cursor-target pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div>
                     <Users className="h-8 w-8 text-lime-400 mb-4" />
                     <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Connect</h4>
@@ -373,8 +384,8 @@ export default function BrilliantLanding() {
                 </MagicBento>
               </Link>
 
-              <Link href="/dashboard" className="md:col-span-1 block group pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+              <Link href="/dashboard" className="md:col-span-1 block group cursor-target pointer-events-auto">
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div>
                     <TrendingUp className="h-8 w-8 text-lime-400 mb-4" />
                     <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Dashboard</h4>
@@ -400,10 +411,10 @@ export default function BrilliantLanding() {
         </section>
 
         {/* 4. FOOTER */}
-        <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black">
+        <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black pointer-events-auto">
           <div className="flex gap-8">
-            <Link href="#" className="hover:text-white pointer-events-auto">GitHub</Link>
-            <Link href="#" className="hover:text-white pointer-events-auto">Discord</Link>
+            <Link href="#" className="hover:text-white cursor-target">GitHub</Link>
+            <Link href="#" className="hover:text-white cursor-target">Discord</Link>
           </div>
           <div className="italic">FAST X NVIDIA // SRM KTR 2026</div>
         </footer>

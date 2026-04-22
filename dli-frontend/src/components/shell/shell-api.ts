@@ -30,7 +30,14 @@ export async function fetchShellProfile(token: string): Promise<ShellUser> {
 
   return {
     ...payload.data.user,
-    systemPoolBalance: payload.data.systemConfig?.systemPoolBalance ?? null,
+    systemPoolBalance:
+      payload.data.systemConfig?.rewardPoolBalance ??
+      payload.data.systemConfig?.systemPoolBalance ??
+      null,
+    rewardPoolBalance:
+      payload.data.systemConfig?.rewardPoolBalance ??
+      payload.data.systemConfig?.systemPoolBalance ??
+      null,
   };
 }
 

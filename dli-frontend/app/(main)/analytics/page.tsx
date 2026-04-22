@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 
 import { API_BASE_URL, TASK_CATEGORIES } from "@/config/constants";
 import { clearStoredToken } from "@/lib/session";
+import { decodeSessionToken } from "@/lib/session-token";
 
 interface AuditLogRecord {
   _id: string;
@@ -267,6 +268,19 @@ export default function AnalyticsPage() {
     tasks: null,
     courses: null,
   });
+  const [role, setRole] = useState<"member" | "moderator" | "admin" | null>(null);
+
+  const isAdmin = role === "admin";
+  const isModerator = role === "moderator";
+  const canViewAnalytics = isAdmin || isModerator;
+  const analyticsTabs: Array<{ key: AnalyticsTab; label: string }> = isAdmin
+    ? [
+        { key: "audit", label: "Audit Feed" },
+        { key: "users", label: "Users" },
+        { key: "tasks", label: "Tasks" },
+        { key: "courses", label: "Courses" },
+      ]
+    : [{ key: "audit", label: "Audit Feed" }];
 
   const loadAuditFeed = useCallback(
     async (options?: { silent?: boolean; signal?: AbortSignal }) => {
@@ -312,7 +326,7 @@ export default function AnalyticsPage() {
           }
 
           if (response.status === 403) {
-            throw new Error("System analytics are restricted to administrators.");
+            throw new Error("System analytics are restricted to moderators and administrators.");
           }
 
           throw new Error(payload?.message ?? `Failed to load audit feed (${response.status}).`);
@@ -373,11 +387,24 @@ export default function AnalyticsPage() {
   );
 
   useEffect(() => {
+    const token = window.localStorage.getItem("token");
+    setRole(token ? decodeSessionToken(token)?.role ?? null : null);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     void loadAuditFeed({ signal: controller.signal });
-    void loadCourses();
+    if (isAdmin) {
+      void loadCourses();
+    }
     return () => controller.abort();
-  }, [loadAuditFeed, loadCourses]);
+  }, [isAdmin, loadAuditFeed, loadCourses]);
+
+  useEffect(() => {
+    if (!isAdmin && activeTab !== "audit") {
+      setActiveTab("audit");
+    }
+  }, [activeTab, isAdmin]);
 
   async function handleCreateTask(event: React.FormEvent) {
     event.preventDefault();
@@ -617,8 +644,9 @@ export default function AnalyticsPage() {
               System <span className="text-lime-400">Analytics</span>
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-neutral-400">
-              Audit intelligence, rapid seeding tools, and direct command controls for operators
-              managing users, tasks, and course modules.
+              {isAdmin
+                ? "Audit intelligence, rapid seeding tools, and direct command controls for operators managing users, tasks, and course modules."
+                : "Read-only audit intelligence and platform metrics for moderators overseeing system activity."}
             </p>
           </div>
 
@@ -635,11 +663,21 @@ export default function AnalyticsPage() {
       </section>
 
       <div className="flex gap-2 overflow-x-auto border-b border-neutral-800">
-        <TabButton active={activeTab === "audit"} label="Audit Feed" onClick={() => setActiveTab("audit")} />
-        <TabButton active={activeTab === "users"} label="Users" onClick={() => setActiveTab("users")} />
-        <TabButton active={activeTab === "tasks"} label="Tasks" onClick={() => setActiveTab("tasks")} />
-        <TabButton active={activeTab === "courses"} label="Courses" onClick={() => setActiveTab("courses")} />
+        {analyticsTabs.map((tab) => (
+          <TabButton
+            key={tab.key}
+            active={activeTab === tab.key}
+            label={tab.label}
+            onClick={() => setActiveTab(tab.key)}
+          />
+        ))}
       </div>
+
+      {canViewAnalytics && !isAdmin ? (
+        <section className="rounded-sm border border-sky-900 bg-sky-950/20 px-4 py-4 text-sm text-sky-200">
+          Moderator access is read-only on this page. Admin-only creation and bulk import controls remain hidden.
+        </section>
+      ) : null}
 
       {successMessage ? (
         <section className="flex items-center gap-3 rounded-sm border border-lime-950 bg-lime-950/20 px-4 py-4 text-sm text-lime-200">
@@ -756,7 +794,7 @@ export default function AnalyticsPage() {
         </>
       ) : null}
 
-      {activeTab === "users" ? (
+      {isAdmin && activeTab === "users" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
           <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6">
             <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
@@ -863,7 +901,7 @@ export default function AnalyticsPage() {
         </div>
       ) : null}
 
-      {activeTab === "tasks" ? (
+      {isAdmin && activeTab === "tasks" ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
           <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6">
             <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
@@ -1021,7 +1059,7 @@ export default function AnalyticsPage() {
         </div>
       ) : null}
 
-      {activeTab === "courses" ? (
+      {isAdmin && activeTab === "courses" ? (
         <div className="space-y-6">
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
             <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6">

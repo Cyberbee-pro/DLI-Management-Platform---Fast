@@ -107,15 +107,19 @@ interface DashboardGovernance {
   pendingCourseApprovals: GovernanceCourseRequestRecord[];
 }
 
+interface SystemConfigSnapshot {
+  rewardPoolBalance?: number | string | null;
+  systemPoolBalance?: number | string | null;
+  totalPointsIssued?: number | string | null;
+}
+
 interface DashboardPayload {
   user: DashboardUser;
   courseRequests: CourseRequestRecord[];
   activeTasks: TaskRecord[];
   claimedTasks?: TaskRecord[];
   governance?: DashboardGovernance;
-  systemConfig?: {
-    systemPoolBalance?: number | string | null;
-  } | null;
+  systemConfig?: SystemConfigSnapshot | null;
 }
 
 interface DashboardApiResponse {
@@ -175,6 +179,15 @@ interface RaiseQueryApiResponse {
   };
 }
 
+interface SystemConfigApiResponse {
+  success: boolean;
+  message?: string;
+  code?: string;
+  data?: {
+    systemConfig?: SystemConfigSnapshot | null;
+  };
+}
+
 const PROFILE_FIELD_OPTIONS = [
   { key: "avatarUrl", label: "Avatar" },
   { key: "resumeUrl", label: "Resume" },
@@ -198,6 +211,11 @@ function buildAdminUsersEndpoint() {
 function buildRaiseQueryEndpoint() {
   const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
   return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/raise-query` : "";
+}
+
+function buildSystemConfigEndpoint() {
+  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/system-config` : "";
 }
 
 function parseMetric(value: string | number | null | undefined) {
@@ -262,6 +280,7 @@ export function DashboardViewRuntime({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [submissionTaskId, setSubmissionTaskId] = useState<string | null>(null);
   const [approvalTaskId, setApprovalTaskId] = useState<string | null>(null);
+  const [systemConfig, setSystemConfig] = useState<SystemConfigSnapshot | null>(null);
   const [adminUsers, setAdminUsers] = useState<NudgeUser[]>([]);
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeSubmitting, setNudgeSubmitting] = useState(false);
@@ -312,6 +331,7 @@ export function DashboardViewRuntime({
       }
 
       setDashboard(payload.data);
+      setSystemConfig(payload.data.systemConfig ?? null);
     },
     [handleUnauthorized],
   );
@@ -345,6 +365,41 @@ export function DashboardViewRuntime({
       }
 
       setAdminUsers(Array.isArray(payload?.data) ? payload.data : []);
+    },
+    [handleUnauthorized],
+  );
+
+  const refreshSystemConfig = useCallback(
+    async (token: string, signal?: AbortSignal) => {
+      const systemConfigEndpoint = buildSystemConfigEndpoint();
+
+      if (!systemConfigEndpoint) {
+        throw new Error("NEXT_PUBLIC_API_URL is not configured.");
+      }
+
+      const response = await fetch(systemConfigEndpoint, {
+        method: "GET",
+        cache: "no-store",
+        signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const payload = (await response.json().catch(() => null)) as SystemConfigApiResponse | null;
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        throw new Error(
+          payload?.message ?? `Failed to load system pool configuration (${response.status}).`,
+        );
+      }
+
+      setSystemConfig(payload?.data?.systemConfig ?? null);
     },
     [handleUnauthorized],
   );
@@ -438,6 +493,32 @@ useEffect(() => {
     return () => controller.abort();
   }, [dashboard?.user.role, refreshAdminUsers]);
 
+  useEffect(() => {
+    const token = window.localStorage.getItem("token");
+    const controller = new AbortController();
+
+    if (!token || !["admin", "moderator"].includes(dashboard?.user.role ?? "")) {
+      setSystemConfig(dashboard?.systemConfig ?? null);
+      return () => controller.abort();
+    }
+
+    const authToken = token;
+
+    async function loadSystemConfig() {
+      try {
+        await refreshSystemConfig(authToken, controller.signal);
+      } catch {
+        if (!controller.signal.aborted) {
+          setSystemConfig(dashboard?.systemConfig ?? null);
+        }
+      }
+    }
+
+    void loadSystemConfig();
+
+    return () => controller.abort();
+  }, [dashboard?.systemConfig, dashboard?.user.role, refreshSystemConfig]);
+
   const activeTasks = dashboard ? dashboard.claimedTasks ?? dashboard.activeTasks : [];
   const governance = dashboard?.governance;
   const nudgeUsers = adminUsers.filter((user) => user.role === "member");
@@ -493,6 +574,9 @@ useEffect(() => {
 
       await action(token);
       await refreshDashboard(token);
+      if (["admin", "moderator"].includes(dashboard?.user.role ?? "")) {
+        await refreshSystemConfig(token);
+      }
 
       if (closeSubmission) {
         setSubmissionTaskId(null);
@@ -611,6 +695,7 @@ useEffect(() => {
         onUnauthorized: handleUnauthorized,
       });
       await refreshDashboard(token);
+      await refreshSystemConfig(token);
       dispatchShellProfileRefresh();
       setActionNotice({
         tone: "success",
@@ -761,6 +846,7 @@ useEffect(() => {
     if (token) {
       await refreshDashboard(token);
       await refreshAdminUsers(token);
+      await refreshSystemConfig(token);
     }
 
     setActionNotice({
@@ -814,6 +900,13 @@ useEffect(() => {
   const operatorToolboxVisible = roleView === "admin" || roleView === "moderator";
   const networkNudgeVisible = roleView === "admin" || roleView === "moderator";
   const canReviewTaskSubmissions = roleView === "admin" || roleView === "moderator";
+  const liveSystemConfig = systemConfig ?? dashboard.systemConfig ?? null;
+  const liveRewardPoolBalance = parseMetric(
+    liveSystemConfig?.rewardPoolBalance ?? liveSystemConfig?.systemPoolBalance,
+  );
+  const totalPointsIssued = parseMetric(liveSystemConfig?.totalPointsIssued);
+  const rewardPoolLow = liveRewardPoolBalance < 1000;
+  const rewardPoolCritical = liveRewardPoolBalance < 250;
   const governanceVisible = Boolean(
     governance?.canReviewTasks || governance?.canReviewCourses,
   );
@@ -866,6 +959,84 @@ useEffect(() => {
             </div>
 
             <div className="mt-6">
+              {operatorToolboxVisible ? (
+                <div
+                  className={[
+                    "mb-6 rounded-sm border px-4 py-4",
+                    rewardPoolCritical
+                      ? "border-rose-400/30 bg-rose-400/10"
+                      : rewardPoolLow
+                        ? "border-amber-400/30 bg-amber-400/10"
+                        : "border-lime-400/20 bg-lime-400/10",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p
+                        className={[
+                          "font-mono text-xs uppercase tracking-[0.22em]",
+                          rewardPoolCritical
+                            ? "text-rose-200"
+                            : rewardPoolLow
+                              ? "text-amber-200"
+                              : "text-lime-200",
+                        ].join(" ")}
+                      >
+                        Live System Pool Balance
+                      </p>
+                      <p
+                        className={[
+                          "mt-3 font-mono text-3xl font-semibold",
+                          rewardPoolCritical
+                            ? "text-rose-100"
+                            : rewardPoolLow
+                              ? "text-amber-100"
+                              : "text-zinc-50",
+                        ].join(" ")}
+                      >
+                        {formatMetric(liveRewardPoolBalance)}
+                      </p>
+                      <p
+                        className={[
+                          "mt-2 text-sm",
+                          rewardPoolCritical
+                            ? "text-rose-200"
+                            : rewardPoolLow
+                              ? "text-amber-200"
+                              : "text-zinc-400",
+                        ].join(" ")}
+                      >
+                        {rewardPoolCritical
+                          ? "Critical reserve threshold reached."
+                          : rewardPoolLow
+                            ? "Warning: system reserve is running low."
+                            : "Reward reserve is stable for approvals and awards."}
+                      </p>
+                    </div>
+
+                    <AlertTriangle
+                      className={[
+                        "h-5 w-5 shrink-0",
+                        rewardPoolCritical
+                          ? "text-rose-300"
+                          : rewardPoolLow
+                            ? "text-amber-300"
+                            : "text-lime-300",
+                      ].join(" ")}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-black/20 pt-4">
+                    <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">
+                      Total Points Issued
+                    </span>
+                    <span className="font-mono text-sm text-zinc-100">
+                      {formatMetric(totalPointsIssued)}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between">
                 <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
                   Operational Load
@@ -1274,8 +1445,17 @@ useEffect(() => {
                   <h3 className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
                     Target Members
                   </h3>
-                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">
-                    Pool {formatMetric(dashboard.systemConfig?.systemPoolBalance)}
+                  <span
+                    className={[
+                      "font-mono text-xs uppercase tracking-[0.18em]",
+                      rewardPoolCritical
+                        ? "text-rose-300"
+                        : rewardPoolLow
+                          ? "text-amber-300"
+                          : "text-neutral-500",
+                    ].join(" ")}
+                  >
+                    Pool {formatMetric(liveRewardPoolBalance)}
                   </span>
                 </div>
 
