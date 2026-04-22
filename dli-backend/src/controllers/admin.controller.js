@@ -9,13 +9,16 @@ const Notification = require("../models/Notification");
 const AuditLog = require("../models/AuditLog");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
-const { ensureSystemConfig } = require("../utils/system-config");
+const {
+  ensureSystemConfig,
+  serializeSystemConfig,
+  consumeRewardPool,
+  refundRewardPool,
+} = require("../utils/system-config");
 const bcrypt = require("bcryptjs");
 const {
   toDecimal128,
   fromDecimal128,
-  addDecimal,
-  subtractDecimal,
 } = require("../utils/decimal.utils");
 const {
   PROFILE_VECTOR_CONFIG,
@@ -443,34 +446,50 @@ const awardCustomPoints = async (req, res) => {
     }
 
     const pointsDelta = toDecimal128(pointsValue);
+    const totalAwardAmount = pointsValue * recipients.length;
+    const systemConfig = await consumeRewardPool(totalAwardAmount, {
+      session,
+      trackIssued: true,
+    });
     const awardedUsers = [];
 
     for (const user of recipients) {
-      user.points.balance = addDecimal(user.points.balance, pointsDelta);
-      user.points.totalEarned = addDecimal(user.points.totalEarned, pointsDelta);
-
-      await user.save({ session });
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: user._id },
+        {
+          $inc: {
+            "points.balance": pointsDelta,
+            "points.totalEarned": pointsDelta,
+          },
+        },
+        {
+          returnDocument: "after",
+          session,
+        },
+      );
 
       await createAuditLog({
         action: "CUSTOM_POINTS_AWARDED",
         tag: "GOVERNANCE",
         actor: req.user,
-        target: user._id,
-        message: `${req.user.name} awarded ${pointsValue} custom point(s) to ${user.name}.`,
+        target: updatedUser._id,
+        message: `${req.user.name} awarded ${pointsValue} custom point(s) to ${updatedUser.name}.`,
         metadata: {
           adminId: req.user._id,
-          targetUserId: user._id,
+          targetUserId: updatedUser._id,
           pointsDelta,
           reason: normalizedReason,
+          systemPoolBalance: systemConfig.systemPoolBalance,
+          rewardPoolBalance: systemConfig.rewardPoolBalance,
         },
         session,
       });
 
       awardedUsers.push({
-        _id: user._id,
-        name: user.name,
-        srmRegNo: user.srmRegNo,
-        points: user.points,
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        srmRegNo: updatedUser.srmRegNo,
+        points: updatedUser.points,
       });
     }
 
@@ -564,29 +583,43 @@ const deductCustomPoints = async (req, res) => {
     }
 
     const deductedUsers = [];
+    let totalReturnedToPool = 0;
 
     for (const user of recipients) {
       const currentBalance = fromDecimal128(user.points.balance);
       const appliedPoints = Math.min(pointsValue, Math.max(currentBalance, 0));
       const deductionDelta = toDecimal128(appliedPoints);
+      const updatedUser =
+        appliedPoints > 0
+          ? await User.findOneAndUpdate(
+              { _id: user._id },
+              {
+                $inc: {
+                  "points.balance": toDecimal128(-appliedPoints),
+                  "points.negativeAccrued": deductionDelta,
+                },
+              },
+              {
+                returnDocument: "after",
+                session,
+              },
+            )
+          : user;
 
-      user.points.balance = subtractDecimal(user.points.balance, deductionDelta);
-      user.points.negativeAccrued = addDecimal(user.points.negativeAccrued, deductionDelta);
-
-      await user.save({ session });
+      totalReturnedToPool += appliedPoints;
 
       await createAuditLog({
         action: "CUSTOM_POINTS_DEDUCTED",
         tag: "GOVERNANCE",
         actor: req.user,
-        target: user._id,
+        target: updatedUser._id,
         message:
           appliedPoints > 0
-            ? `${req.user.name} deducted ${appliedPoints} custom point(s) from ${user.name}.`
-            : `${req.user.name} attempted to deduct ${pointsValue} custom point(s) from ${user.name}, but the balance was already zero.`,
+            ? `${req.user.name} deducted ${appliedPoints} custom point(s) from ${updatedUser.name}.`
+            : `${req.user.name} attempted to deduct ${pointsValue} custom point(s) from ${updatedUser.name}, but the balance was already zero.`,
         metadata: {
           adminId: req.user._id,
-          targetUserId: user._id,
+          targetUserId: updatedUser._id,
           requestedPoints: pointsValue,
           pointsDelta: deductionDelta,
           appliedPoints,
@@ -596,13 +629,17 @@ const deductCustomPoints = async (req, res) => {
       });
 
       deductedUsers.push({
-        _id: user._id,
-        name: user.name,
-        srmRegNo: user.srmRegNo,
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        srmRegNo: updatedUser.srmRegNo,
         deductedPoints: appliedPoints,
         requestedPoints: pointsValue,
-        points: user.points,
+        points: updatedUser.points,
       });
+    }
+
+    if (totalReturnedToPool > 0) {
+      await refundRewardPool(totalReturnedToPool, { session });
     }
 
     await session.commitTransaction();
@@ -720,13 +757,32 @@ const getAuditFeed = async (req, res) => {
       success: true,
       data: {
         logs: serializeDocument(auditLogs),
-        systemConfig: serializeDocument(systemConfig),
+        systemConfig: serializeSystemConfig(systemConfig),
       },
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve audit feed.",
+      code: "INTERNAL_ERROR",
+    });
+  }
+};
+
+const getSystemConfig = async (_req, res) => {
+  try {
+    const systemConfig = await ensureSystemConfig();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        systemConfig: serializeSystemConfig(systemConfig),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve system configuration.",
       code: "INTERNAL_ERROR",
     });
   }
@@ -1237,6 +1293,7 @@ module.exports = {
   getPendingRequests,
   getUsersLeaderboard,
   getAuditFeed,
+  getSystemConfig,
   raiseProfileQuery,
   bulkUploadCodes,
   bulkImportUsers,

@@ -10,6 +10,7 @@ export interface ShellUser {
   websiteUrl?: string | null;
   resumeUrl?: string | null;
   systemPoolBalance?: number | string | null;
+  rewardPoolBalance?: number | string | null;
   points: {
     balance: number | string;
   };
@@ -39,6 +40,7 @@ export interface ShellProfileResponse {
     user: ShellUser;
     systemConfig?: {
       systemPoolBalance?: number | string | null;
+      rewardPoolBalance?: number | string | null;
     } | null;
   };
 }

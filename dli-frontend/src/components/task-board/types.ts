@@ -65,6 +65,8 @@ export interface TaskRecord {
   category: TaskCategory;
   points: TaskPoints;
   isHotBounty: boolean;
+  requiresAdminApproval?: boolean;
+  requiresModApproval?: boolean;
   status: TaskStatus;
   difficulty: TaskDifficulty;
   tags: string[];

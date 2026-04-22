@@ -3,11 +3,12 @@ const Task = require("../models/Task");
 const User = require("../models/User");
 const {
   toDecimal128,
-  addDecimal,
 } = require("../utils/decimal.utils");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
-const { incrementSystemPoolBalance } = require("../utils/system-config");
+const {
+  consumeRewardPool,
+} = require("../utils/system-config");
 
 function withTaskRelations(query) {
   return query
@@ -119,6 +120,18 @@ async function completeTaskSubmission(taskId, reviewer) {
       };
     }
 
+    if (task.requiresAdminApproval === true && reviewer.role !== "admin") {
+      await session.abortTransaction();
+      return {
+        statusCode: 403,
+        payload: {
+          success: false,
+          message: "This high-tier task strictly requires Admin approval.",
+          code: "ADMIN_APPROVAL_REQUIRED",
+        },
+      };
+    }
+
     if (!isTaskReviewer(task, reviewer)) {
       await session.abortTransaction();
       return {
@@ -168,16 +181,24 @@ async function completeTaskSubmission(taskId, reviewer) {
       };
     }
 
-    user.points.balance = addDecimal(user.points.balance, task.points.effective);
-    user.points.totalEarned = addDecimal(
-      user.points.totalEarned,
-      task.points.effective,
-    );
-
     await task.save({ session });
-    await user.save({ session });
-
-    const systemConfig = await incrementSystemPoolBalance(task.points.effective, { session });
+    const systemConfig = await consumeRewardPool(task.points.effective, {
+      session,
+      trackIssued: true,
+    });
+    await User.findOneAndUpdate(
+      { _id: user._id },
+      {
+        $inc: {
+          "points.balance": task.points.effective,
+          "points.totalEarned": task.points.effective,
+        },
+      },
+      {
+        returnDocument: "after",
+        session,
+      },
+    );
 
     await createAuditLog({
       action: "TASK_COMPLETED",
@@ -191,20 +212,22 @@ async function completeTaskSubmission(taskId, reviewer) {
         previousStatus: "in_review",
         newStatus: "completed",
         systemPoolBalance: systemConfig.systemPoolBalance,
+        rewardPoolBalance: systemConfig.rewardPoolBalance,
       },
       session,
     });
 
     await createAuditLog({
-      action: "SYSTEM_POOL_INCREMENTED",
+      action: "SYSTEM_POOL_DECREMENTED",
       tag: "POOL",
       actor: reviewer,
       target: user._id,
-      message: `System pool increased after "${task.title}" approval.`,
+      message: `System pool decreased after "${task.title}" approval.`,
       metadata: {
         taskId: task._id,
         pointsDelta: task.points.effective,
         systemPoolBalance: systemConfig.systemPoolBalance,
+        rewardPoolBalance: systemConfig.rewardPoolBalance,
       },
       session,
     });
@@ -220,6 +243,7 @@ async function completeTaskSubmission(taskId, reviewer) {
     };
   } catch (error) {
     await session.abortTransaction();
+
     throw error;
   } finally {
     session.endSession();
@@ -303,6 +327,8 @@ exports.createTask = async (req, res, next) => {
       tags,
       projectId,
       repoUrl,
+      requiresAdminApproval,
+      requiresModApproval,
     } = req.body;
 
     const baseNum = Number(points?.base);
@@ -328,6 +354,8 @@ exports.createTask = async (req, res, next) => {
       tags: tags || [],
       projectId: projectId || null,
       repoUrl: repoUrl || null,
+      requiresAdminApproval: requiresAdminApproval === true,
+      requiresModApproval: requiresModApproval !== false,
       createdBy: {
         _id: req.user._id,
         name: req.user.name,
@@ -355,6 +383,14 @@ exports.createTask = async (req, res, next) => {
       data: serializeDocument(newTask),
     });
   } catch (error) {
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     next(error);
   }
 };

@@ -94,6 +94,8 @@ export function AdminToolbox({
     isHotBounty: false,
     repoUrl: "",
   });
+  const [reqAdmin, setReqAdmin] = useState(false);
+  const [reqMod, setReqMod] = useState(true);
   const [courseForm, setCourseForm] = useState({
     title: "",
     level: "Beginner",
@@ -115,6 +117,26 @@ export function AdminToolbox({
   function closeModal() {
     setOpenModal(null);
     setError(null);
+  }
+
+  function handleToggleModApproval(checked: boolean) {
+    if (!checked && !reqAdmin) {
+      setError("At least one approval routing level (Admin or Mod) must be enabled.");
+      return;
+    }
+
+    setError(null);
+    setReqMod(checked);
+  }
+
+  function handleToggleAdminApproval(checked: boolean) {
+    if (!checked && !reqMod) {
+      setError("At least one approval routing level (Admin or Mod) must be enabled.");
+      return;
+    }
+
+    setError(null);
+    setReqAdmin(checked);
   }
 
   async function submitTask(event: React.FormEvent<HTMLFormElement>) {
@@ -154,6 +176,8 @@ export function AdminToolbox({
           priority: "medium",
           isHotBounty: taskForm.isHotBounty,
           repoUrl: taskForm.repoUrl.trim() || null,
+          requiresAdminApproval: reqAdmin,
+          requiresModApproval: reqMod,
         }),
       });
 
@@ -177,6 +201,8 @@ export function AdminToolbox({
         isHotBounty: false,
         repoUrl: "",
       });
+      setReqAdmin(false);
+      setReqMod(true);
       closeModal();
       onSuccess("CREATE_TASK_COMPLETE");
     } catch (taskError) {
@@ -595,6 +621,64 @@ export function AdminToolbox({
                 }`}
               />
             </button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center justify-between rounded-sm border border-neutral-800 bg-neutral-950/40 px-4 py-4">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400">
+                  Require Admin Approval
+                </p>
+                <p className="mt-2 text-sm text-neutral-500">
+                  Restrict final approval to administrators only.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={reqAdmin}
+                onClick={() => handleToggleAdminApproval(!reqAdmin)}
+                className={`relative inline-flex h-8 w-16 items-center rounded-full border transition ${
+                  reqAdmin
+                    ? "border-lime-300 bg-lime-400/20 shadow-[0_0_10px_rgba(163,230,53,0.4)]"
+                    : "border-neutral-700 bg-neutral-900"
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 rounded-full bg-white transition ${
+                    reqAdmin ? "translate-x-9" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between rounded-sm border border-neutral-800 bg-neutral-950/40 px-4 py-4">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400">
+                  Require Moderator Approval
+                </p>
+                <p className="mt-2 text-sm text-neutral-500">
+                  Allow moderators and administrators to approve submissions.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={reqMod}
+                onClick={() => handleToggleModApproval(!reqMod)}
+                className={`relative inline-flex h-8 w-16 items-center rounded-full border transition ${
+                  reqMod
+                    ? "border-lime-300 bg-lime-400/20 shadow-[0_0_10px_rgba(163,230,53,0.4)]"
+                    : "border-neutral-700 bg-neutral-900"
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 rounded-full bg-white transition ${
+                    reqMod ? "translate-x-9" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           <div>

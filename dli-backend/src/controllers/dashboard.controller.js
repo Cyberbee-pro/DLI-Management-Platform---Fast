@@ -3,7 +3,7 @@ const CourseRequest = require("../models/CourseRequest");
 const Task = require("../models/Task");
 const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
-const { ensureSystemConfig } = require("../utils/system-config");
+const { ensureSystemConfig, serializeSystemConfig } = require("../utils/system-config");
 
 function withTaskRelations(query) {
   return query
@@ -39,6 +39,7 @@ function serializeTaskWithSubmission(task) {
 exports.getMyDashboard = async (req, res, next) => {
   try {
     const userId = req.user._id;
+    const operatorView = req.user.role === "admin" || req.user.role === "moderator";
 
     // Fetch user document and explicitly drop the hash from the projection
     const user = await User.findById(userId).select("-passwordHash");
@@ -65,6 +66,7 @@ exports.getMyDashboard = async (req, res, next) => {
       pendingTaskApprovals,
       rawPendingCourseApprovals,
       systemConfig,
+      globalStats,
     ] = await Promise.all([
       CourseRequest.find({ "requestedBy._id": userId }).sort({ requestedAt: -1 }),
       withTaskRelations(
@@ -85,7 +87,40 @@ exports.getMyDashboard = async (req, res, next) => {
       user.role === "admin"
         ? CourseRequest.find({ status: "pending" }).sort({ requestedAt: -1 })
         : Promise.resolve([]),
-      user.role === "admin" ? ensureSystemConfig() : Promise.resolve(null),
+      user.role === "admin" || user.role === "moderator"
+        ? ensureSystemConfig()
+        : Promise.resolve(null),
+      operatorView
+        ? Promise.all([
+            CourseRequest.countDocuments({
+              status: { $in: ["approved", "completed"] },
+            }),
+            Task.countDocuments({}),
+            Task.countDocuments({ status: "completed" }),
+            Task.countDocuments({
+              isHotBounty: true,
+              status: { $ne: "completed" },
+            }),
+            Task.countDocuments({
+              isHotBounty: true,
+              status: "completed",
+            }),
+          ]).then(
+            ([
+              coursesRedeemed,
+              tasksDeployed,
+              tasksCompleted,
+              hotBounties,
+              hotBountiesCompleted,
+            ]) => ({
+              coursesRedeemed,
+              tasksDeployed,
+              tasksCompleted,
+              hotBounties,
+              hotBountiesCompleted,
+            }),
+          )
+        : Promise.resolve(undefined),
     ]);
 
     const pendingCourseApprovals = await Promise.all(
@@ -116,7 +151,8 @@ exports.getMyDashboard = async (req, res, next) => {
           pendingTaskApprovals: serializedPendingTaskApprovals,
           pendingCourseApprovals,
         },
-        systemConfig: systemConfig ? serializeDocument(systemConfig) : null,
+        globalStats,
+        systemConfig: serializeSystemConfig(systemConfig),
       },
     });
   } catch (error) {

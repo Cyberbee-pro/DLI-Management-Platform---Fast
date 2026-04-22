@@ -264,7 +264,6 @@ const useMobileDetection = () => {
 const MagicBento = ({
   children,
   className = '',
-  enableStars = true,
   enableSpotlight = true,
   enableBorderGlow = true,
   disableAnimations = false,

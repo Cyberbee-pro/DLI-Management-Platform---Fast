@@ -55,7 +55,7 @@ export function TopHeader({
           href="/"
           prefetch={true}
           aria-label="Go to the home page"
-          className="inline-flex shrink-0 items-center gap-1 text-xl font-black italic tracking-tighter text-white lg:hidden"
+          className="cursor-target inline-flex shrink-0 items-center gap-1 text-xl font-black italic tracking-tighter text-white lg:hidden"
         >
           <span>F.A.S.T.</span>
           <span className="font-bold not-italic text-lime-400">DLI</span>
@@ -85,7 +85,7 @@ export function TopHeader({
             aria-label="Open notifications"
             aria-expanded={notificationsOpen}
             onClick={() => setNotificationsOpen((current) => !current)}
-            className="relative grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/2 text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400"
+            className="cursor-target relative grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/2 text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400"
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 ? (
@@ -109,7 +109,7 @@ export function TopHeader({
                 <button
                   type="button"
                   onClick={() => setNotificationsOpen(false)}
-                  className="font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-500 transition hover:text-lime-400"
+                  className="cursor-target font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-500 transition hover:text-lime-400"
                 >
                   Close
                 </button>
@@ -154,7 +154,7 @@ export function TopHeader({
         <button
           type="button"
           aria-label="Open terminal shortcuts"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/2 text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400"
+          className="cursor-target grid h-11 w-11 shrink-0 place-items-center rounded-sm border border-white/8 bg-white/2 text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400"
         >
           <TerminalSquare className="h-5 w-5" />
         </button>
@@ -163,7 +163,7 @@ export function TopHeader({
           href="/account"
           prefetch={true}
           aria-label="Open account settings"
-          className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
+          className="cursor-target relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-lime-400/20 bg-lime-400/10 font-mono text-xs uppercase tracking-[0.2em] text-lime-300 transition hover:border-lime-400/35 hover:bg-lime-400/15"
         >
           {loading ? (
             <span className="h-3.5 w-3.5 animate-pulse rounded-full bg-lime-300/70" />

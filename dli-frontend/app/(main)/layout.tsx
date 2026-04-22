@@ -11,6 +11,7 @@ import {
   fetchCatalogueUserBalance,
 } from "@/components/catalogue/catalogue-api";
 import { AppFooter } from "@/components/shell/app-footer";
+import TargetCursor from "@/components/TargetCursor";
 import {
   fetchShellNotifications,
   fetchShellProfile,
@@ -136,6 +137,13 @@ export default function MainLayout({
 
   return (
     <>
+      <TargetCursor
+        spinDuration={2}
+        hideDefaultCursor
+        parallaxOn
+        hoverDuration={0.2}
+      />
+
       <Sidebar
         user={shellUser}
         loading={loading}

@@ -55,7 +55,7 @@ function NavigationLink({
 
   if (onAction) {
     return (
-      <button type="button" onClick={onAction} className={className}>
+      <button type="button" onClick={onAction} className={`cursor-target ${className}`}>
         <item.icon className={iconClassName} />
         <span>{item.label}</span>
       </button>
@@ -63,7 +63,12 @@ function NavigationLink({
   }
 
   return (
-    <Link href={item.href} prefetch={true} onClick={onNavigate} className={className}>
+    <Link
+      href={item.href}
+      prefetch={true}
+      onClick={onNavigate}
+      className={`cursor-target ${className}`}
+    >
       <item.icon className={iconClassName} />
       <span>{item.label}</span>
     </Link>
@@ -86,6 +91,7 @@ export function SidebarShared({
   const pathname = usePathname();
   const router = useRouter();
   const avatarLabel = getUserInitials(user?.name);
+  const operatorView = user?.role === "admin" || user?.role === "moderator";
 
   useEffect(() => {
     for (const item of primaryNavItems) {
@@ -130,7 +136,7 @@ export function SidebarShared({
             prefetch={true}
             aria-label="Go to the home page"
             onClick={onClose}
-            className="inline-flex items-center gap-1 text-xl font-black italic tracking-tighter text-white"
+            className="cursor-target inline-flex items-center gap-1 text-xl font-black italic tracking-tighter text-white"
           >
             <span>F.A.S.T.</span>
             <span className="font-bold not-italic text-lime-400">DLI</span>
@@ -140,7 +146,7 @@ export function SidebarShared({
             type="button"
             aria-label="Close navigation"
             onClick={onClose}
-            className="absolute right-5 grid h-10 w-10 place-items-center rounded-sm border border-white/8 bg-white/3 text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400 lg:hidden"
+            className="cursor-target absolute right-5 grid h-10 w-10 place-items-center rounded-sm border border-white/8 bg-white/3 text-neutral-500 transition hover:border-lime-400/25 hover:text-lime-400 lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -165,13 +171,13 @@ export function SidebarShared({
             <div className="mt-6 flex min-w-0 items-end justify-between gap-3 border-t border-(--line) pt-5">
               <div className="min-w-0">
                 <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
-                  Available XP
+                  {operatorView ? "Operator Mode" : "Available XP"}
                 </p>
                 {loading ? (
                   <div className="mt-2 h-8 w-24 animate-pulse rounded bg-neutral-800" />
                 ) : (
                   <p className="mt-2 font-mono text-2xl font-semibold text-zinc-100">
-                    {formatUserBalance(user?.points.balance)}
+                    {operatorView ? "PLATFORM" : formatUserBalance(user?.points.balance)}
                   </p>
                 )}
               </div>
@@ -212,20 +218,6 @@ export function SidebarShared({
               />
             ))}
           </nav>
-
-          {user?.role === "admin" ? (
-            <section className="panel-surface mt-6 rounded-sm border border-(--line) px-5 py-5">
-              <p className="font-mono text-xs uppercase tracking-[0.24em] text-neutral-500">
-                System Pool Balance
-              </p>
-              <div className="mt-4 flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_12px_#a3e635]" />
-                <p className="font-mono text-2xl font-semibold text-zinc-100">
-                  {formatUserBalance(user?.systemPoolBalance)}
-                </p>
-              </div>
-            </section>
-          ) : null}
 
           <div className="mt-auto border-t border-(--line) pt-5">
             <nav className="space-y-2">

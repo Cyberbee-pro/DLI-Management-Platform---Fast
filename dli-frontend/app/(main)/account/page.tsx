@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -351,11 +352,14 @@ export default function AccountPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="space-y-6">
             <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
-              <div className="mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-lime-400/20 bg-neutral-950">
+              <div className="relative mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-lime-400/20 bg-neutral-950">
                 {avatarPreviewUrl ? (
-                  <img
+                  <Image
                     src={avatarPreviewUrl}
                     alt={`${user.name} avatar`}
+                    fill
+                    sizes="128px"
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 ) : (
