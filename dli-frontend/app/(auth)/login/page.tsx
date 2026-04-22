@@ -2,25 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Terminal } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { SiDiscord } from 'react-icons/si';
 
 import ColorBends from '@/components/ColorBends';
-import {Michroma} from "next/font/google";
 import PixelBlast from '@/components/PixelBlast'
 import { API_BASE_URL } from "@/config/constants";
 import TargetCursor from '@/components/TargetCursor';
 import { getStoredToken, storeStoredToken } from "@/lib/session";
-import FaultyTerminal from '@/components/FaultyTerminal';
-
-
-const michroma = Michroma({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-michroma",
-});
 
 
 interface AuthApiResponse {
@@ -132,7 +122,7 @@ export default function LoginPage() {
               brightness={0.6}/> */}
 
 <ColorBends
-  colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+  colors={["#ff5c7a", "#8a5cff", "#00ffd1"] as string[]}
   rotation={-180}
   speed={0.37}
   scale={0.2}
@@ -146,10 +136,11 @@ export default function LoginPage() {
   bandWidth={17.5}
   transparent
   autoRotate={0}
-  color="#A855F7"
+  className=""
+  style={{}}
 />
               </div>
-            <div className={`absolute flex flex-col gap-8 ml-8 text-5xl text-lime-400 ${michroma.className} `}>
+            <div className="absolute ml-8 flex flex-col gap-8 font-mono text-5xl text-lime-400">
               <p>F.A.S.T. X NVIDIA</p>
               <p> Deep Learning Institute</p>
               <p>Access Terminal</p>
@@ -174,16 +165,18 @@ export default function LoginPage() {
     liquidStrength={0.12}
     liquidRadius={1.2}
     liquidWobbleSpeed={5}
-    speed={0.7}
-    edgeFade={0.25}
-    transparent
+  speed={0.7}
+  edgeFade={0.25}
+  transparent
+  className=""
+  style={{}}
   />
 
 
 
 
 <div className="flex flex-col absolute gap-6">
-        <div className={`  cursor-target ml-8 mb-15 text-5xl ${michroma.className} `}>
+        <div className="cursor-target ml-8 mb-15 text-5xl font-mono">
         
         LOGIN TERMINAL
 
