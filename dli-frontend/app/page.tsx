@@ -4,7 +4,6 @@ import { useRef, useState, useEffect, type RefObject } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useSpring, useMotionValueEvent } from "framer-motion";
 import { ArrowRight, ChevronDown, ClipboardList, GraduationCap, Users, TrendingUp } from "lucide-react";
-import DecryptedText from '@/components/DecryptedText';
 
 // Premium Animations & Backgrounds
 import TargetCursor from '@/components/TargetCursor';
@@ -46,15 +45,16 @@ function useStaggeredCluster(targetRef: RefObject<HTMLDivElement | null>) {
   };
 }
 
-function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: string }) {
+// ⚡ FIX: Added `alwaysColorful` prop
+function EventPixelCard({ src, alt, label, alwaysColorful = false }: { src: string; alt: string; label: string; alwaysColorful?: boolean }) {
   return (
     <div className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl cursor-target pointer-events-auto">
       
-      {/* ⚡ The Image: Grayscale by default, color & slight zoom on hover */}
+      {/* ⚡ Conditional styling based on `alwaysColorful` prop */}
       <img 
         src={src} 
         alt={alt} 
-        className="w-full h-full object-cover block transition-all duration-700 grayscale group-hover:grayscale-0 group-hover:scale-105" 
+        className={`w-full h-full object-cover block transition-all duration-700 group-hover:scale-105 ${alwaysColorful ? '' : 'grayscale group-hover:grayscale-0'}`} 
         loading="lazy" 
       />
 
@@ -205,7 +205,7 @@ export default function BrilliantLanding() {
               From regional hackathons to global NVIDIA certifications, the F.A.S.T. ecosystem tracks every milestone in your technical evolution.
             </p>
             
-            <Link href="/login" className="group inline-flex items-center gap-4 w-fit px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white cursor-target pointer-events-auto">
+            <Link href="/login" className="group inline-flex items-center gap-4 w-fit px-8 py-4 bg-white font-bold rounded-full hover:bg-lime-400 transition-all hover:scale-105 hover:text-white cursor-target pointer-events-auto mt-4">
               <div className="flex text-black group-hover:text-white items-center gap-2">
                 AUTHENTICATE TERMINAL <ArrowRight size={18} />
               </div>
@@ -219,7 +219,8 @@ export default function BrilliantLanding() {
               <div className="sticky top-24 z-10 h-[60vh] lg:h-[70vh] w-full">
                 <motion.div style={{ scale: fMotion.scale, opacity: fMotion.opacity }} className="w-full h-full relative will-change-transform transform-gpu backface-hidden">
                   <motion.div style={{ y: fMotion.p1_y, opacity: fMotion.p1_o }} className="absolute top-0 left-0 w-[55%] h-[65%] shadow-2xl will-change-transform transform-gpu backface-hidden">
-                    <EventPixelCard src="/events/Fastathon/fst1.webp" alt="Fastathon" label="2026 Fastathon" />
+                    {/* ⚡ FIX: Added alwaysColorful={true} to this specific card */}
+                    <EventPixelCard src="/events/Fastathon/fst1.webp" alt="Fastathon" label="2026 Fastathon" alwaysColorful={true} />
                   </motion.div>
                   <motion.div style={{ y: fMotion.p2_y, opacity: fMotion.p2_o }} className="absolute top-[10%] right-0 w-[50%] h-[55%] z-20 shadow-2xl will-change-transform transform-gpu backface-hidden">
                     <EventPixelCard src="/events/Fastathon/fst3.webp" alt="Fastathon" label="Node Teams" />
@@ -286,7 +287,7 @@ export default function BrilliantLanding() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 auto-rows-[350px]">
               
               <Link href="/tasks" className="md:col-span-2 block group cursor-target pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between " glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div className="flex justify-between items-start">
                     <ClipboardList className="h-8 w-8 text-lime-400 mb-4" />
                     <span className="text-[10px] font-mono border border-lime-500/50 text-lime-400 bg-lime-500/10 px-3 py-1.5 rounded-full uppercase tracking-widest">
@@ -313,7 +314,7 @@ export default function BrilliantLanding() {
               </Link>
 
               <Link href="/catalogue" className="md:col-span-1 md:row-span-2 block group cursor-target pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 " glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <GraduationCap className="h-8 w-8 text-lime-400 " />
                   <h4 className="text-3xl font-bold tracking-tight mb-4 text-white">Course Catalogue</h4>
                   <p className="text-neutral-400 text-sm ">
@@ -341,7 +342,7 @@ export default function BrilliantLanding() {
               </Link>
 
               <Link href="/registry" className="md:col-span-1 block group cursor-pointer cursor-target pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col gap-5 justify-between " glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div>
                     <Users className="h-8 w-8 text-lime-400 mb-4" />
                     <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Connect</h4>
@@ -363,7 +364,7 @@ export default function BrilliantLanding() {
               </Link>
 
               <Link href="/dashboard" className="md:col-span-1 block group cursor-target pointer-events-auto">
-                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between pointer-events-none" glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
+                <MagicBento className="h-full rounded-3xl bg-neutral-950/90 border border-white/10 p-8 flex flex-col justify-between " glowColor="163, 230, 53" enableStars enableSpotlight enableBorderGlow enableTilt enableMagnetism clickEffect>
                   <div>
                     <TrendingUp className="h-8 w-8 text-lime-400 mb-4" />
                     <h4 className="text-3xl font-bold tracking-tight mb-2 text-white">Dashboard</h4>
@@ -387,7 +388,6 @@ export default function BrilliantLanding() {
             </div>
           </div>
         </section>
-
 
         {/* 4. FOOTER */}
         <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black pointer-events-auto">
