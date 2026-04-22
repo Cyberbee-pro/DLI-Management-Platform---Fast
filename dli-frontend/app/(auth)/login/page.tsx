@@ -234,13 +234,13 @@ export default function LoginPage() {
             </p>
           ) : null}
         </form>
-        <div className="">
+        <div className="flex gap-4 mt-4">
           <Link href="/" className="group inline-flex items-center gap-4 w-fit px-8 py-4 bg-white font-bold  hover:bg-lime-400 transition-all hover:scale-105 hover:text-white cursor-target pointer-events-auto">
               <div className="flex text-black group-hover:text-white items-center gap-2">
                 <ArrowLeft size={18} />Back to home 
               </div>
             </Link>
-          <Link href="/" className="group inline-flex items-center gap-4 w-fit px-8 py-4 bg-white font-bold  hover:bg-lime-400 transition-all hover:scale-105 hover:text-white cursor-target pointer-events-auto">
+          <Link href="#" className="group inline-flex items-center gap-4 w-fit px-8 py-4 bg-white font-bold  hover:bg-lime-400 transition-all hover:scale-105 hover:text-white cursor-target pointer-events-auto">
               <div className="flex text-black group-hover:text-white items-center gap-2">
                 <SiDiscord size={24} />Discord
               </div>
