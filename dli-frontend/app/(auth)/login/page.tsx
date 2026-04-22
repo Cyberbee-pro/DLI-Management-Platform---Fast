@@ -7,10 +7,18 @@ import Link from "next/link";
 import { SiDiscord } from 'react-icons/si';
 
 import ColorBends from '@/components/ColorBends';
+import {Michroma} from "next/font/google";
 import PixelBlast from '@/components/PixelBlast'
 import { API_BASE_URL } from "@/config/constants";
 import TargetCursor from '@/components/TargetCursor';
 import { getStoredToken, storeStoredToken } from "@/lib/session";
+
+
+const michroma = Michroma({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-michroma",
+});
 
 
 interface AuthApiResponse {
@@ -136,11 +144,12 @@ export default function LoginPage() {
   bandWidth={17.5}
   transparent
   autoRotate={0}
+  color="#A855F7"
   className=""
   style={{}}
 />
               </div>
-            <div className="absolute ml-8 flex flex-col gap-8 font-mono text-5xl text-lime-400">
+            <div className={` absolute cursor-target flex flex-col gap-8 text-5xl text-lime-400 ${michroma.className} `}>
               <p>F.A.S.T. X NVIDIA</p>
               <p> Deep Learning Institute</p>
               <p>Access Terminal</p>
@@ -176,7 +185,7 @@ export default function LoginPage() {
 
 
 <div className="flex flex-col absolute gap-6">
-        <div className="cursor-target ml-8 mb-15 text-5xl font-mono">
+        <div className={`  cursor-target ml-8 mb-15 text-5xl ${michroma.className} `}>
         
         LOGIN TERMINAL
 
