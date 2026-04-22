@@ -69,6 +69,28 @@ router.post(
       .notEmpty()
       .withMessage("Difficulty is required")
       .isIn(["beginner", "intermediate", "advanced"]),
+    body("requiresAdminApproval")
+      .optional()
+      .isBoolean()
+      .withMessage("requiresAdminApproval must be boolean")
+      .toBoolean(),
+    body("requiresModApproval")
+      .optional()
+      .isBoolean()
+      .withMessage("requiresModApproval must be boolean")
+      .toBoolean(),
+    body().custom((_, { req }) => {
+      const requiresAdminApproval = req.body.requiresAdminApproval === true;
+      const requiresModApproval = req.body.requiresModApproval !== false;
+
+      if (!requiresAdminApproval && !requiresModApproval) {
+        throw new Error(
+          "At least one approval routing level (Admin or Mod) must be enabled",
+        );
+      }
+
+      return true;
+    }),
   ],
   validateRequest,
   taskController.createTask,

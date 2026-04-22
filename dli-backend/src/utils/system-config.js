@@ -124,11 +124,10 @@ async function consumeRewardPool(amount, { session, trackIssued = true } = {}) {
     incrementPayload.totalPointsIssued = decimalAmount;
   }
 
+  // System Pool is now informational only. Governance actions must not be blocked
+  // by the current balance, so we always apply the atomic decrement.
   let query = SystemConfig.findOneAndUpdate(
-    {
-      key: GLOBAL_SYSTEM_CONFIG_KEY,
-      rewardPoolBalance: { $gte: decimalAmount },
-    },
+    { key: GLOBAL_SYSTEM_CONFIG_KEY },
     {
       $inc: incrementPayload,
     },
@@ -140,10 +139,6 @@ async function consumeRewardPool(amount, { session, trackIssued = true } = {}) {
   query = buildSessionQuery(query, session);
 
   const systemConfig = await query;
-
-  if (!systemConfig) {
-    throw new InsufficientRewardPoolError();
-  }
 
   return systemConfig;
 }

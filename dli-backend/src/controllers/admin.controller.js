@@ -10,7 +10,6 @@ const AuditLog = require("../models/AuditLog");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
 const {
-  InsufficientRewardPoolError,
   ensureSystemConfig,
   serializeSystemConfig,
   consumeRewardPool,
@@ -509,14 +508,6 @@ const awardCustomPoints = async (req, res) => {
   } catch (error) {
     if (session.inTransaction()) {
       await session.abortTransaction();
-    }
-
-    if (error instanceof InsufficientRewardPoolError) {
-      return res.status(error.statusCode).json({
-        success: false,
-        message: error.message,
-        code: error.code,
-      });
     }
 
     return res.status(500).json({

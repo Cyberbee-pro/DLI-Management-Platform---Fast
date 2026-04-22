@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
-  AlertTriangle,
   CheckCircle2,
   Clock3,
   Loader2,
@@ -107,11 +106,11 @@ interface DashboardGovernance {
   pendingCourseApprovals: GovernanceCourseRequestRecord[];
 }
 
-interface SystemConfigSnapshot {
-  rewardPoolBalance?: number | string | null;
-  systemPoolBalance?: number | string | null;
-  totalPointsIssued?: number | string | null;
-}
+// interface SystemConfigSnapshot {
+//   rewardPoolBalance?: number | string | null;
+//   systemPoolBalance?: number | string | null;
+//   totalPointsIssued?: number | string | null;
+// }
 
 interface DashboardPayload {
   user: DashboardUser;
@@ -119,7 +118,14 @@ interface DashboardPayload {
   activeTasks: TaskRecord[];
   claimedTasks?: TaskRecord[];
   governance?: DashboardGovernance;
-  systemConfig?: SystemConfigSnapshot | null;
+  globalStats?: {
+    coursesRedeemed: number;
+    tasksDeployed: number;
+    tasksCompleted: number;
+    hotBounties: number;
+    hotBountiesCompleted: number;
+  };
+  // systemConfig?: SystemConfigSnapshot | null;
 }
 
 interface DashboardApiResponse {
@@ -179,14 +185,14 @@ interface RaiseQueryApiResponse {
   };
 }
 
-interface SystemConfigApiResponse {
-  success: boolean;
-  message?: string;
-  code?: string;
-  data?: {
-    systemConfig?: SystemConfigSnapshot | null;
-  };
-}
+// interface SystemConfigApiResponse {
+//   success: boolean;
+//   message?: string;
+//   code?: string;
+//   data?: {
+//     systemConfig?: SystemConfigSnapshot | null;
+//   };
+// }
 
 const PROFILE_FIELD_OPTIONS = [
   { key: "avatarUrl", label: "Avatar" },
@@ -213,10 +219,10 @@ function buildRaiseQueryEndpoint() {
   return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/raise-query` : "";
 }
 
-function buildSystemConfigEndpoint() {
-  const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
-  return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/system-config` : "";
-}
+// function buildSystemConfigEndpoint() {
+//   const sanitizedBaseUrl = API_BASE_URL.replace(/\/$/, "");
+//   return sanitizedBaseUrl ? `${sanitizedBaseUrl}/admin/system-config` : "";
+// }
 
 function parseMetric(value: string | number | null | undefined) {
   const numericValue =
@@ -280,7 +286,7 @@ export function DashboardViewRuntime({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [submissionTaskId, setSubmissionTaskId] = useState<string | null>(null);
   const [approvalTaskId, setApprovalTaskId] = useState<string | null>(null);
-  const [systemConfig, setSystemConfig] = useState<SystemConfigSnapshot | null>(null);
+  // const [systemConfig, setSystemConfig] = useState<SystemConfigSnapshot | null>(null);
   const [adminUsers, setAdminUsers] = useState<NudgeUser[]>([]);
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeSubmitting, setNudgeSubmitting] = useState(false);
@@ -331,7 +337,7 @@ export function DashboardViewRuntime({
       }
 
       setDashboard(payload.data);
-      setSystemConfig(payload.data.systemConfig ?? null);
+      // setSystemConfig(payload.data.systemConfig ?? null);
     },
     [handleUnauthorized],
   );
@@ -369,40 +375,40 @@ export function DashboardViewRuntime({
     [handleUnauthorized],
   );
 
-  const refreshSystemConfig = useCallback(
-    async (token: string, signal?: AbortSignal) => {
-      const systemConfigEndpoint = buildSystemConfigEndpoint();
-
-      if (!systemConfigEndpoint) {
-        throw new Error("NEXT_PUBLIC_API_URL is not configured.");
-      }
-
-      const response = await fetch(systemConfigEndpoint, {
-        method: "GET",
-        cache: "no-store",
-        signal,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const payload = (await response.json().catch(() => null)) as SystemConfigApiResponse | null;
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          handleUnauthorized();
-          return;
-        }
-
-        throw new Error(
-          payload?.message ?? `Failed to load system pool configuration (${response.status}).`,
-        );
-      }
-
-      setSystemConfig(payload?.data?.systemConfig ?? null);
-    },
-    [handleUnauthorized],
-  );
+  // const refreshSystemConfig = useCallback(
+  //   async (token: string, signal?: AbortSignal) => {
+  //     const systemConfigEndpoint = buildSystemConfigEndpoint();
+  //
+  //     if (!systemConfigEndpoint) {
+  //       throw new Error("NEXT_PUBLIC_API_URL is not configured.");
+  //     }
+  //
+  //     const response = await fetch(systemConfigEndpoint, {
+  //       method: "GET",
+  //       cache: "no-store",
+  //       signal,
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+  //
+  //     const payload = (await response.json().catch(() => null)) as SystemConfigApiResponse | null;
+  //
+  //     if (!response.ok) {
+  //       if (response.status === 401) {
+  //         handleUnauthorized();
+  //         return;
+  //       }
+  //
+  //       throw new Error(
+  //         payload?.message ?? `Failed to load system pool configuration (${response.status}).`,
+  //       );
+  //     }
+  //
+  //     setSystemConfig(payload?.data?.systemConfig ?? null);
+  //   },
+  //   [handleUnauthorized],
+  // );
 
 useEffect(() => {
     // 1. Get the raw value
@@ -493,31 +499,31 @@ useEffect(() => {
     return () => controller.abort();
   }, [dashboard?.user.role, refreshAdminUsers]);
 
-  useEffect(() => {
-    const token = window.localStorage.getItem("token");
-    const controller = new AbortController();
-
-    if (!token || !["admin", "moderator"].includes(dashboard?.user.role ?? "")) {
-      setSystemConfig(dashboard?.systemConfig ?? null);
-      return () => controller.abort();
-    }
-
-    const authToken = token;
-
-    async function loadSystemConfig() {
-      try {
-        await refreshSystemConfig(authToken, controller.signal);
-      } catch {
-        if (!controller.signal.aborted) {
-          setSystemConfig(dashboard?.systemConfig ?? null);
-        }
-      }
-    }
-
-    void loadSystemConfig();
-
-    return () => controller.abort();
-  }, [dashboard?.systemConfig, dashboard?.user.role, refreshSystemConfig]);
+  // useEffect(() => {
+  //   const token = window.localStorage.getItem("token");
+  //   const controller = new AbortController();
+  //
+  //   if (!token || !["admin", "moderator"].includes(dashboard?.user.role ?? "")) {
+  //     setSystemConfig(dashboard?.systemConfig ?? null);
+  //     return () => controller.abort();
+  //   }
+  //
+  //   const authToken = token;
+  //
+  //   async function loadSystemConfig() {
+  //     try {
+  //       await refreshSystemConfig(authToken, controller.signal);
+  //     } catch {
+  //       if (!controller.signal.aborted) {
+  //         setSystemConfig(dashboard?.systemConfig ?? null);
+  //       }
+  //     }
+  //   }
+  //
+  //   void loadSystemConfig();
+  //
+  //   return () => controller.abort();
+  // }, [dashboard?.systemConfig, dashboard?.user.role, refreshSystemConfig]);
 
   const activeTasks = dashboard ? dashboard.claimedTasks ?? dashboard.activeTasks : [];
   const governance = dashboard?.governance;
@@ -574,9 +580,9 @@ useEffect(() => {
 
       await action(token);
       await refreshDashboard(token);
-      if (["admin", "moderator"].includes(dashboard?.user.role ?? "")) {
-        await refreshSystemConfig(token);
-      }
+      // if (["admin", "moderator"].includes(dashboard?.user.role ?? "")) {
+      //   await refreshSystemConfig(token);
+      // }
 
       if (closeSubmission) {
         setSubmissionTaskId(null);
@@ -695,7 +701,7 @@ useEffect(() => {
         onUnauthorized: handleUnauthorized,
       });
       await refreshDashboard(token);
-      await refreshSystemConfig(token);
+      // await refreshSystemConfig(token);
       dispatchShellProfileRefresh();
       setActionNotice({
         tone: "success",
@@ -846,7 +852,7 @@ useEffect(() => {
     if (token) {
       await refreshDashboard(token);
       await refreshAdminUsers(token);
-      await refreshSystemConfig(token);
+      // await refreshSystemConfig(token);
     }
 
     setActionNotice({
@@ -900,16 +906,25 @@ useEffect(() => {
   const operatorToolboxVisible = roleView === "admin" || roleView === "moderator";
   const networkNudgeVisible = roleView === "admin" || roleView === "moderator";
   const canReviewTaskSubmissions = roleView === "admin" || roleView === "moderator";
-  const liveSystemConfig = systemConfig ?? dashboard.systemConfig ?? null;
-  const liveRewardPoolBalance = parseMetric(
-    liveSystemConfig?.rewardPoolBalance ?? liveSystemConfig?.systemPoolBalance,
-  );
-  const totalPointsIssued = parseMetric(liveSystemConfig?.totalPointsIssued);
-  const rewardPoolLow = liveRewardPoolBalance < 1000;
-  const rewardPoolCritical = liveRewardPoolBalance < 250;
   const governanceVisible = Boolean(
     governance?.canReviewTasks || governance?.canReviewCourses,
   );
+  const pendingGovernanceTotal =
+    pendingTaskApprovals.length + pendingCourseApprovals.length;
+  const globalStats = dashboard.globalStats ?? {
+    coursesRedeemed: 0,
+    tasksDeployed: 0,
+    tasksCompleted: 0,
+    hotBounties: 0,
+    hotBountiesCompleted: 0,
+  };
+  const platformPulseMetrics = [
+    { label: "Modules Redeemed", value: globalStats.coursesRedeemed },
+    { label: "Tasks Deployed", value: globalStats.tasksDeployed },
+    { label: "Member Completions", value: globalStats.tasksCompleted },
+    { label: "Active Hot Bounties", value: globalStats.hotBounties },
+    { label: "Bounties Closed", value: globalStats.hotBountiesCompleted },
+  ];
   const detailBusyAction =
     selectedTask && busyAction?.taskId === selectedTask._id
       ? busyAction.type === "accept-transfer" ||
@@ -950,110 +965,63 @@ useEffect(() => {
 
               <div className="text-left xl:text-right">
                 <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
-                  Total Points
+                  {operatorToolboxVisible ? "Platform Activity" : "Total Points"}
                 </p>
                 <p className="mt-2 font-mono text-3xl font-semibold text-zinc-50">
-                  {formatMetric(user.points.balance)}
+                  {operatorToolboxVisible
+                    ? pendingGovernanceTotal.toString().padStart(2, "0")
+                    : formatMetric(user.points.balance)}
                 </p>
               </div>
             </div>
 
             <div className="mt-6">
               {operatorToolboxVisible ? (
-                <div
-                  className={[
-                    "mb-6 rounded-sm border px-4 py-4",
-                    rewardPoolCritical
-                      ? "border-rose-400/30 bg-rose-400/10"
-                      : rewardPoolLow
-                        ? "border-amber-400/30 bg-amber-400/10"
-                        : "border-lime-400/20 bg-lime-400/10",
-                  ].join(" ")}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p
-                        className={[
-                          "font-mono text-xs uppercase tracking-[0.22em]",
-                          rewardPoolCritical
-                            ? "text-rose-200"
-                            : rewardPoolLow
-                              ? "text-amber-200"
-                              : "text-lime-200",
-                        ].join(" ")}
-                      >
-                        Live System Pool Balance
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="md:col-span-2 xl:col-span-3 rounded-sm border border-lime-400/20 bg-lime-400/10 px-4 py-4">
+                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-lime-200">
+                      Platform Pulse
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-zinc-400">
+                      Global platform metrics for operator review and governance flow control.
+                    </p>
+                  </div>
+
+                  {platformPulseMetrics.map((metric) => (
+                    <div
+                      key={metric.label}
+                      className="rounded-sm border border-neutral-800 bg-black px-4 py-4"
+                    >
+                      <p className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">
+                        {metric.label}
                       </p>
-                      <p
-                        className={[
-                          "mt-3 font-mono text-3xl font-semibold",
-                          rewardPoolCritical
-                            ? "text-rose-100"
-                            : rewardPoolLow
-                              ? "text-amber-100"
-                              : "text-zinc-50",
-                        ].join(" ")}
-                      >
-                        {formatMetric(liveRewardPoolBalance)}
-                      </p>
-                      <p
-                        className={[
-                          "mt-2 text-sm",
-                          rewardPoolCritical
-                            ? "text-rose-200"
-                            : rewardPoolLow
-                              ? "text-amber-200"
-                              : "text-zinc-400",
-                        ].join(" ")}
-                      >
-                        {rewardPoolCritical
-                          ? "Critical reserve threshold reached."
-                          : rewardPoolLow
-                            ? "Warning: system reserve is running low."
-                            : "Reward reserve is stable for approvals and awards."}
+                      <p className="mt-3 font-mono text-2xl font-semibold text-zinc-100">
+                        {metric.value.toLocaleString("en-US")}
                       </p>
                     </div>
-
-                    <AlertTriangle
-                      className={[
-                        "h-5 w-5 shrink-0",
-                        rewardPoolCritical
-                          ? "text-rose-300"
-                          : rewardPoolLow
-                            ? "text-amber-300"
-                            : "text-lime-300",
-                      ].join(" ")}
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
+                      Operational Load
+                    </p>
+                    <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
+                      {operationalLoad}%
+                    </p>
+                  </div>
+                  <div className="mt-3 h-1.5 rounded-full bg-neutral-800">
+                    <div
+                      className="h-full rounded-full bg-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.25)]"
+                      style={{ width: `${Math.max(10, operationalLoad)}%` }}
                     />
                   </div>
-
-                  <div className="mt-4 flex items-center justify-between border-t border-black/20 pt-4">
-                    <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">
-                      Total Points Issued
-                    </span>
-                    <span className="font-mono text-sm text-zinc-100">
-                      {formatMetric(totalPointsIssued)}
-                    </span>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex items-center justify-between">
-                <p className="font-mono text-xs uppercase tracking-[0.24em] text-zinc-500">
-                  Operational Load
-                </p>
-                <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
-                  {operationalLoad}%
-                </p>
-              </div>
-              <div className="mt-3 h-1.5 rounded-full bg-neutral-800">
-                <div
-                  className="h-full rounded-full bg-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.25)]"
-                  style={{ width: `${Math.max(10, operationalLoad)}%` }}
-                />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-zinc-500">
-                Derived from the current active-task load and redemption activity on this node.
-              </p>
+                  <p className="mt-3 text-sm leading-6 text-zinc-500">
+                    Derived from the current active-task load and redemption activity on this node.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -1104,12 +1072,18 @@ useEffect(() => {
                 </div>
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
                   <span className="text-zinc-500">Request Queue</span>
-                  <span className="font-mono text-zinc-100">{courseRequests.length}</span>
+                  <span className="font-mono text-zinc-100">
+                    {operatorToolboxVisible ? pendingGovernanceTotal : courseRequests.length}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">Pending Modules</span>
+                  <span className="text-zinc-500">
+                    {operatorToolboxVisible ? "Pending Courses" : "Pending Modules"}
+                  </span>
                   <span className="font-mono text-zinc-100">
-                    {courseRequests.filter((request) => request.status === "pending").length}
+                    {operatorToolboxVisible
+                      ? pendingCourseApprovals.length
+                      : courseRequests.filter((request) => request.status === "pending").length}
                   </span>
                 </div>
               </div>
@@ -1157,7 +1131,7 @@ useEffect(() => {
                               <button
                                 type="button"
                                 onClick={() => openTaskDetails(task)}
-                                className="rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-300 transition hover:border-lime-400/30 hover:text-lime-400"
+                                className="cursor-target rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-neutral-300 transition hover:border-lime-400/30 hover:text-lime-400"
                               >
                                 VIEW DETAILS
                               </button>
@@ -1166,7 +1140,7 @@ useEffect(() => {
                                 type="button"
                                 disabled={!ownedByCurrentUser || task.status === "completed"}
                                 onClick={() => openSubmission(task)}
-                                className="rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="cursor-target rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 {ownedByCurrentUser
                                   ? task.submissionDetails?.url
@@ -1185,7 +1159,7 @@ useEffect(() => {
                                     busyAction?.type === "accept-transfer" &&
                                     busyAction.taskId === task._id
                                   }
-                                  className="inline-flex items-center gap-2 rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                  className="cursor-target inline-flex items-center gap-2 rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                   {busyAction?.type === "accept-transfer" &&
                                   busyAction.taskId === task._id ? (
@@ -1298,7 +1272,7 @@ useEffect(() => {
                             <button
                               type="button"
                               onClick={() => openApprovalEvidence(task)}
-                              className="rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-lime-400 transition hover:border-lime-400/30 hover:bg-lime-400/10"
+                              className="cursor-target rounded-sm border border-neutral-800 bg-black px-3 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-lime-400 transition hover:border-lime-400/30 hover:bg-lime-400/10"
                             >
                               VIEW_EVIDENCE
                             </button>
@@ -1349,7 +1323,7 @@ useEffect(() => {
                               type="button"
                               onClick={() => void handleApproveCourseRequest(request._id)}
                               disabled={busyCourseRequestId === request._id}
-                              className="inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="cursor-target inline-flex items-center justify-center gap-2 rounded-sm bg-lime-400 px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {busyCourseRequestId === request._id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1402,26 +1376,26 @@ useEffect(() => {
                   {PROFILE_FIELD_OPTIONS.map((option) => (
                     <label
                       key={option.key}
-                      className="flex items-center justify-between rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-3 text-sm text-zinc-200"
+                      className="cursor-target flex items-center justify-between rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-3 text-sm text-zinc-200"
                     >
                       <span>{option.label}</span>
                       <input
                         type="checkbox"
                         checked={selectedProfileFields.includes(option.key)}
                         onChange={() => toggleProfileField(option.key)}
-                        className="h-4 w-4 rounded border-neutral-700 bg-black text-lime-400"
+                        className="cursor-target h-4 w-4 rounded border-neutral-700 bg-black text-lime-400"
                       />
                     </label>
                   ))}
                 </div>
 
-                <label className="mt-5 flex items-center justify-between rounded-sm border border-lime-400/20 bg-lime-400/10 px-3 py-3 text-sm text-lime-200">
+                <label className="cursor-target mt-5 flex items-center justify-between rounded-sm border border-lime-400/20 bg-lime-400/10 px-3 py-3 text-sm text-lime-200">
                   <span>Select All Members</span>
                   <input
                     type="checkbox"
                     checked={selectAllMembers}
                     onChange={() => setSelectAllMembers((current) => !current)}
-                    className="h-4 w-4 rounded border-lime-400/40 bg-black text-lime-400"
+                    className="cursor-target h-4 w-4 rounded border-lime-400/40 bg-black text-lime-400"
                   />
                 </label>
 
@@ -1429,7 +1403,7 @@ useEffect(() => {
                   type="button"
                   onClick={() => void handleRaiseQuery()}
                   disabled={nudgeSubmitting || nudgeLoading}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="cursor-target mt-5 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-lime-400 px-4 py-3 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {nudgeSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
                   {nudgeSubmitting ? "Dispatching..." : "Dispatch Network Nudge"}
@@ -1445,17 +1419,10 @@ useEffect(() => {
                   <h3 className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
                     Target Members
                   </h3>
-                  <span
-                    className={[
-                      "font-mono text-xs uppercase tracking-[0.18em]",
-                      rewardPoolCritical
-                        ? "text-rose-300"
-                        : rewardPoolLow
-                          ? "text-amber-300"
-                          : "text-neutral-500",
-                    ].join(" ")}
-                  >
-                    Pool {formatMetric(liveRewardPoolBalance)}
+                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">
+                    {selectAllMembers
+                      ? "All eligible members"
+                      : `${selectedNudgeUserIds.length.toString().padStart(2, "0")} selected`}
                   </span>
                 </div>
 
@@ -1469,7 +1436,7 @@ useEffect(() => {
                     filteredNudgeUsers.map((member) => (
                       <label
                         key={member._id}
-                        className="flex items-start justify-between gap-4 rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-sm text-zinc-200"
+                        className="cursor-target flex items-start justify-between gap-4 rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-sm text-zinc-200"
                       >
                         <div>
                           <p className="font-medium text-zinc-100">{member.name}</p>
@@ -1495,7 +1462,7 @@ useEffect(() => {
                           checked={selectAllMembers || selectedNudgeUserIds.includes(member._id)}
                           disabled={selectAllMembers}
                           onChange={() => toggleNudgeUser(member._id)}
-                          className="mt-1 h-4 w-4 rounded border-neutral-700 bg-black text-lime-400"
+                          className="cursor-target mt-1 h-4 w-4 rounded border-neutral-700 bg-black text-lime-400"
                         />
                       </label>
                     ))
@@ -1510,113 +1477,113 @@ useEffect(() => {
           </section>
         ) : null}
 
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)]">
-          <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
-                  Personal Analytics
-                </p>
-                <h2 className="mt-2 text-lg font-semibold text-zinc-50">
-                  Contribution Breakdown
-                </h2>
+        {memberFeaturesVisible ? (
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)]">
+            <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-mono text-xs uppercase tracking-[0.24em] text-lime-300">
+                    Personal Analytics
+                  </p>
+                  <h2 className="mt-2 text-lg font-semibold text-zinc-50">
+                    Contribution Breakdown
+                  </h2>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-6 space-y-5">
-              {analyticsMetrics.map((metric) => (
-                <div key={metric.label}>
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-zinc-400">{metric.label}</p>
-                    <p className="font-mono text-sm text-zinc-100">
-                      {metric.value.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="mt-2 h-1.5 rounded-full bg-neutral-800">
-                    <div
-                      className={[
-                        "h-full rounded-full",
-                        metric.accent ? "bg-lime-400" : "bg-zinc-300/60",
-                      ].join(" ")}
-                      style={{
-                        width: `${Math.max(8, Math.round((metric.value / maxMetric) * 100))}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          {memberFeaturesVisible ? (
-            <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="rounded-sm border border-lime-400/20 bg-lime-400/10 px-2 py-1 font-mono text-xs uppercase tracking-[0.18em] text-lime-300">
-                    Active Module
-                  </span>
-                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
-                    {courseRequests.length.toString().padStart(2, "0")} requests
-                  </span>
-                </div>
-
-                <h2 className="mt-5 text-lg font-semibold leading-tight text-zinc-50">
-                  Course Requests
-                </h2>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">
-                  Track all your module requests and their approval status.
-                </p>
-
-                <div className="custom-scrollbar mt-6 max-h-72 space-y-3 overflow-y-auto pr-2">
-                  {courseRequests.length > 0 ? (
-                    courseRequests.map((request) => (
-                      <div
-                        key={request._id}
-                        className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-3"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-zinc-100">
-                              {request.course.title}
-                            </p>
-                            <div className="mt-2 flex flex-wrap items-center gap-3">
-                              <span
-                                className={[
-                                  "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.16em]",
-                                  statusClasses(request.status),
-                                ].join(" ")}
-                              >
-                                {formatStatus(request.status)}
-                              </span>
-                              <span className="font-mono text-xs text-zinc-500">
-                                {formatTimestamp(request.requestedAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {request.redemptionCode || request.adminNote ? (
-                          <div className="mt-3 border-t border-neutral-800 pt-3">
-                            <p className="text-xs text-zinc-500">
-                              {request.redemptionCode ? "Redemption Code" : "Admin Note"}
-                            </p>
-                            <p className="mt-1 font-mono text-sm text-lime-300">
-                              {request.redemptionCode ?? request.adminNote}
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-center">
-                      <p className="text-sm text-zinc-500">
-                        No course requests yet. Start in the catalogue!
+              <div className="mt-6 space-y-5">
+                {analyticsMetrics.map((metric) => (
+                  <div key={metric.label}>
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-sm text-zinc-400">{metric.label}</p>
+                      <p className="font-mono text-sm text-zinc-100">
+                        {metric.value.toLocaleString()}
                       </p>
                     </div>
-                  )}
-                </div>
+                    <div className="mt-2 h-1.5 rounded-full bg-neutral-800">
+                      <div
+                        className={[
+                          "h-full rounded-full",
+                          metric.accent ? "bg-lime-400" : "bg-zinc-300/60",
+                        ].join(" ")}
+                        style={{
+                          width: `${Math.max(8, Math.round((metric.value / maxMetric) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </article>
-          ) : null}
-        </section>
+
+            <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="rounded-sm border border-lime-400/20 bg-lime-400/10 px-2 py-1 font-mono text-xs uppercase tracking-[0.18em] text-lime-300">
+                  Active Module
+                </span>
+                <span className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
+                  {courseRequests.length.toString().padStart(2, "0")} requests
+                </span>
+              </div>
+
+              <h2 className="mt-5 text-lg font-semibold leading-tight text-zinc-50">
+                Course Requests
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">
+                Track all your module requests and their approval status.
+              </p>
+
+              <div className="custom-scrollbar mt-6 max-h-72 space-y-3 overflow-y-auto pr-2">
+                {courseRequests.length > 0 ? (
+                  courseRequests.map((request) => (
+                    <div
+                      key={request._id}
+                      className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-zinc-100">
+                            {request.course.title}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-3">
+                            <span
+                              className={[
+                                "rounded-sm border px-2 py-1 font-mono text-xs uppercase tracking-[0.16em]",
+                                statusClasses(request.status),
+                              ].join(" ")}
+                            >
+                              {formatStatus(request.status)}
+                            </span>
+                            <span className="font-mono text-xs text-zinc-500">
+                              {formatTimestamp(request.requestedAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {request.redemptionCode || request.adminNote ? (
+                        <div className="mt-3 border-t border-neutral-800 pt-3">
+                          <p className="text-xs text-zinc-500">
+                            {request.redemptionCode ? "Redemption Code" : "Admin Note"}
+                          </p>
+                          <p className="mt-1 font-mono text-sm text-lime-300">
+                            {request.redemptionCode ?? request.adminNote}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 text-center">
+                    <p className="text-sm text-zinc-500">
+                      No course requests yet. Start in the catalogue!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </article>
+          </section>
+        ) : null}
 
         {memberFeaturesVisible ? (
           <section className="panel-surface rounded-sm border border-neutral-800 px-5 py-6 sm:px-6">
@@ -1708,7 +1675,7 @@ useEffect(() => {
           {actionNotice.tone === "success" ? (
             <CheckCircle2 className="h-4 w-4 shrink-0" />
           ) : (
-            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <Activity className="h-4 w-4 shrink-0" />
           )}
           <span className="font-mono uppercase tracking-[0.18em]">{actionNotice.message}</span>
         </section>

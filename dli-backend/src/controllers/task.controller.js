@@ -7,7 +7,6 @@ const {
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
 const {
-  InsufficientRewardPoolError,
   consumeRewardPool,
 } = require("../utils/system-config");
 
@@ -117,6 +116,18 @@ async function completeTaskSubmission(taskId, reviewer) {
           success: false,
           message: "Task not found",
           code: "TASK_NOT_FOUND",
+        },
+      };
+    }
+
+    if (task.requiresAdminApproval === true && reviewer.role !== "admin") {
+      await session.abortTransaction();
+      return {
+        statusCode: 403,
+        payload: {
+          success: false,
+          message: "This high-tier task strictly requires Admin approval.",
+          code: "ADMIN_APPROVAL_REQUIRED",
         },
       };
     }
@@ -233,17 +244,6 @@ async function completeTaskSubmission(taskId, reviewer) {
   } catch (error) {
     await session.abortTransaction();
 
-    if (error instanceof InsufficientRewardPoolError) {
-      return {
-        statusCode: error.statusCode,
-        payload: {
-          success: false,
-          message: error.message,
-          code: error.code,
-        },
-      };
-    }
-
     throw error;
   } finally {
     session.endSession();
@@ -327,6 +327,8 @@ exports.createTask = async (req, res, next) => {
       tags,
       projectId,
       repoUrl,
+      requiresAdminApproval,
+      requiresModApproval,
     } = req.body;
 
     const baseNum = Number(points?.base);
@@ -352,6 +354,8 @@ exports.createTask = async (req, res, next) => {
       tags: tags || [],
       projectId: projectId || null,
       repoUrl: repoUrl || null,
+      requiresAdminApproval: requiresAdminApproval === true,
+      requiresModApproval: requiresModApproval !== false,
       createdBy: {
         _id: req.user._id,
         name: req.user.name,
@@ -379,6 +383,14 @@ exports.createTask = async (req, res, next) => {
       data: serializeDocument(newTask),
     });
   } catch (error) {
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     next(error);
   }
 };

@@ -71,7 +71,7 @@ export function MobileNavigation({
           onClick={onToggle}
           aria-expanded={isOpen}
           aria-controls="mobile-sidebar"
-          className="inline-flex items-center gap-2 rounded-sm border border-white/8 bg-white/3 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-neutral-400 transition hover:border-lime-400/25 hover:text-lime-400"
+          className="cursor-target inline-flex items-center gap-2 rounded-sm border border-white/8 bg-white/3 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-neutral-400 transition hover:border-lime-400/25 hover:text-lime-400"
         >
           <Menu className="h-4 w-4" />
           {isOpen ? "Close" : "Menu"}

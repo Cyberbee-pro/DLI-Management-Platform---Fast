@@ -41,9 +41,6 @@ interface AnalyticsApiResponse {
   code?: string;
   data?: {
     logs: AuditLogRecord[];
-    systemConfig?: {
-      systemPoolBalance?: number | string | null;
-    } | null;
   };
 }
 
@@ -218,7 +215,6 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>("audit");
   const [logs, setLogs] = useState<AuditLogRecord[]>([]);
   const [courses, setCourses] = useState<CourseForAdmin[]>([]);
-  const [systemPoolBalance, setSystemPoolBalance] = useState<string | number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -242,6 +238,8 @@ export default function AnalyticsPage() {
     isHotBounty: false,
     repoUrl: "",
   });
+  const [reqAdmin, setReqAdmin] = useState(false);
+  const [reqMod, setReqMod] = useState(true);
   const [courseForm, setCourseForm] = useState({
     title: "",
     level: "Beginner",
@@ -333,7 +331,6 @@ export default function AnalyticsPage() {
         }
 
         setLogs(Array.isArray(payload?.data?.logs) ? payload.data.logs : []);
-        setSystemPoolBalance(payload?.data?.systemConfig?.systemPoolBalance ?? null);
       } catch (auditFeedError) {
         if (!options?.signal?.aborted) {
           setError(
@@ -385,6 +382,21 @@ export default function AnalyticsPage() {
     }),
     [courses],
   );
+  const scrubbedAuditLogs = useMemo(
+    () =>
+      logs.filter((log) => {
+        const normalizedMessage = log.message.toLowerCase();
+
+        return !(
+          log.tag === "POOL" ||
+          log.action === "SYSTEM_POOL_DECREMENTED" ||
+          log.action === "SYSTEM_POOL_INCREMENTED" ||
+          normalizedMessage.includes("system pool") ||
+          normalizedMessage.includes("reward pool")
+        );
+      }),
+    [logs],
+  );
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
@@ -405,6 +417,22 @@ export default function AnalyticsPage() {
       setActiveTab("audit");
     }
   }, [activeTab, isAdmin]);
+
+  function handleToggleModApproval(checked: boolean) {
+    if (!checked && !reqAdmin) {
+      return;
+    }
+
+    setReqMod(checked);
+  }
+
+  function handleToggleAdminApproval(checked: boolean) {
+    if (!checked && !reqMod) {
+      return;
+    }
+
+    setReqAdmin(checked);
+  }
 
   async function handleCreateTask(event: React.FormEvent) {
     event.preventDefault();
@@ -442,6 +470,8 @@ export default function AnalyticsPage() {
           priority: "medium",
           isHotBounty: taskForm.isHotBounty,
           repoUrl: taskForm.repoUrl.trim() || null,
+          requiresAdminApproval: reqAdmin,
+          requiresModApproval: reqMod,
         }),
       });
 
@@ -460,6 +490,8 @@ export default function AnalyticsPage() {
         isHotBounty: false,
         repoUrl: "",
       });
+      setReqAdmin(false);
+      setReqMod(true);
       setSuccessMessage("TASK_DEPLOYED_SUCCESSFULLY");
     } catch (taskError) {
       setError(taskError instanceof Error ? taskError.message : "Failed to create task.");
@@ -706,19 +738,7 @@ export default function AnalyticsPage() {
 
       {activeTab === "audit" ? (
         <>
-          <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
-              <div className="flex items-center gap-3">
-                <Activity className="h-4 w-4 text-lime-300" />
-                <p className="font-mono text-xs uppercase tracking-[0.24em] text-neutral-500">
-                  System Pool
-                </p>
-              </div>
-              <p className="mt-4 font-mono text-3xl font-semibold text-zinc-100">
-                {formatMetric(systemPoolBalance)}
-              </p>
-            </article>
-
+          <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <article className="panel-surface rounded-sm border border-neutral-800 px-5 py-5">
               <div className="flex items-center gap-3">
                 <ShieldAlert className="h-4 w-4 text-rose-300" />
@@ -727,7 +747,10 @@ export default function AnalyticsPage() {
                 </p>
               </div>
               <p className="mt-4 font-mono text-3xl font-semibold text-zinc-100">
-                {logs.filter((log) => log.tag === "GOVERNANCE").length.toString().padStart(2, "0")}
+                {scrubbedAuditLogs
+                  .filter((log) => log.tag === "GOVERNANCE")
+                  .length.toString()
+                  .padStart(2, "0")}
               </p>
             </article>
 
@@ -739,7 +762,7 @@ export default function AnalyticsPage() {
                 </p>
               </div>
               <p className="mt-4 font-mono text-3xl font-semibold text-zinc-100">
-                {logs.length.toString().padStart(3, "0")}
+                {scrubbedAuditLogs.length.toString().padStart(3, "0")}
               </p>
             </article>
           </section>
@@ -753,7 +776,9 @@ export default function AnalyticsPage() {
                 <h2 className="mt-2 text-lg font-semibold text-zinc-50">Central Command Timeline</h2>
               </div>
               <p className="font-mono text-xs uppercase tracking-[0.18em] text-neutral-500">
-                {loading ? "SYNCING" : `${logs.length.toString().padStart(3, "0")} entries`}
+                {loading
+                  ? "SYNCING"
+                  : `${scrubbedAuditLogs.length.toString().padStart(3, "0")} entries`}
               </p>
             </div>
 
@@ -762,8 +787,8 @@ export default function AnalyticsPage() {
                 <p className="font-mono text-sm uppercase tracking-[0.18em] text-neutral-500">
                   Opening black box feed...
                 </p>
-              ) : logs.length > 0 ? (
-                logs.map((log) => (
+              ) : scrubbedAuditLogs.length > 0 ? (
+                scrubbedAuditLogs.map((log) => (
                   <article
                     key={log._id}
                     className="rounded-sm border border-neutral-800 bg-neutral-950 px-4 py-4 font-mono text-sm text-zinc-200"
@@ -999,6 +1024,66 @@ export default function AnalyticsPage() {
                     }`}
                   />
                 </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center justify-between rounded-sm border border-neutral-800 bg-black/60 px-4 py-4">
+                  <div>
+                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
+                      Require Admin Approval
+                    </p>
+                    <p className="mt-2 text-sm text-neutral-400">
+                      Restrict final approval to administrators only.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={reqAdmin}
+                    onClick={() => handleToggleAdminApproval(!reqAdmin)}
+                    className={`relative inline-flex h-8 w-16 items-center rounded-full border transition ${
+                      reqAdmin
+                        ? "border-lime-300 bg-lime-400/20 shadow-[0_0_10px_rgba(163,230,53,0.4)]"
+                        : "border-neutral-700 bg-neutral-900"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-6 w-6 rounded-full bg-white transition ${
+                        reqAdmin ? "translate-x-9" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between rounded-sm border border-neutral-800 bg-black/60 px-4 py-4">
+                  <div>
+                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-neutral-500">
+                      Require Moderator Approval
+                    </p>
+                    <p className="mt-2 text-sm text-neutral-400">
+                      Allow moderators and administrators to approve submissions.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={reqMod}
+                    onClick={() => handleToggleModApproval(!reqMod)}
+                    className={`relative inline-flex h-8 w-16 items-center rounded-full border transition ${
+                      reqMod
+                        ? "border-lime-300 bg-lime-400/20 shadow-[0_0_10px_rgba(163,230,53,0.4)]"
+                        : "border-neutral-700 bg-neutral-900"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-6 w-6 rounded-full bg-white transition ${
+                        reqMod ? "translate-x-9" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
               <div>
