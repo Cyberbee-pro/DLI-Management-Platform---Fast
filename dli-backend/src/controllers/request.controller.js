@@ -7,6 +7,7 @@ const { getRecentPointsStanding } = require("../utils/points-standing");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
 const {
+  InsufficientRewardPoolError,
   decrementSystemPoolBalance,
 } = require("../utils/system-config");
 
@@ -497,6 +498,15 @@ exports.approveCourseRequest = async (req, res, next) => {
     });
   } catch (error) {
     await session.abortTransaction();
+
+    if (error instanceof InsufficientRewardPoolError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        code: error.code,
+      });
+    }
+
     next(error);
   } finally {
     session.endSession();

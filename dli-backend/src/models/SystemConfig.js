@@ -13,6 +13,16 @@ const systemConfigSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    rewardPoolBalance: {
+      type: mongoose.Schema.Types.Decimal128,
+      required: true,
+      default: 0,
+    },
+    totalPointsIssued: {
+      type: mongoose.Schema.Types.Decimal128,
+      required: true,
+      default: 0,
+    },
   },
   {
     timestamps: true,

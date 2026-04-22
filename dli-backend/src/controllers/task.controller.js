@@ -3,11 +3,13 @@ const Task = require("../models/Task");
 const User = require("../models/User");
 const {
   toDecimal128,
-  addDecimal,
 } = require("../utils/decimal.utils");
 const { serializeDocument } = require("../utils/serialize");
 const { createAuditLog } = require("../utils/audit");
-const { incrementSystemPoolBalance } = require("../utils/system-config");
+const {
+  InsufficientRewardPoolError,
+  consumeRewardPool,
+} = require("../utils/system-config");
 
 function withTaskRelations(query) {
   return query
@@ -168,16 +170,24 @@ async function completeTaskSubmission(taskId, reviewer) {
       };
     }
 
-    user.points.balance = addDecimal(user.points.balance, task.points.effective);
-    user.points.totalEarned = addDecimal(
-      user.points.totalEarned,
-      task.points.effective,
-    );
-
     await task.save({ session });
-    await user.save({ session });
-
-    const systemConfig = await incrementSystemPoolBalance(task.points.effective, { session });
+    const systemConfig = await consumeRewardPool(task.points.effective, {
+      session,
+      trackIssued: true,
+    });
+    await User.findOneAndUpdate(
+      { _id: user._id },
+      {
+        $inc: {
+          "points.balance": task.points.effective,
+          "points.totalEarned": task.points.effective,
+        },
+      },
+      {
+        returnDocument: "after",
+        session,
+      },
+    );
 
     await createAuditLog({
       action: "TASK_COMPLETED",
@@ -191,20 +201,22 @@ async function completeTaskSubmission(taskId, reviewer) {
         previousStatus: "in_review",
         newStatus: "completed",
         systemPoolBalance: systemConfig.systemPoolBalance,
+        rewardPoolBalance: systemConfig.rewardPoolBalance,
       },
       session,
     });
 
     await createAuditLog({
-      action: "SYSTEM_POOL_INCREMENTED",
+      action: "SYSTEM_POOL_DECREMENTED",
       tag: "POOL",
       actor: reviewer,
       target: user._id,
-      message: `System pool increased after "${task.title}" approval.`,
+      message: `System pool decreased after "${task.title}" approval.`,
       metadata: {
         taskId: task._id,
         pointsDelta: task.points.effective,
         systemPoolBalance: systemConfig.systemPoolBalance,
+        rewardPoolBalance: systemConfig.rewardPoolBalance,
       },
       session,
     });
@@ -220,6 +232,18 @@ async function completeTaskSubmission(taskId, reviewer) {
     };
   } catch (error) {
     await session.abortTransaction();
+
+    if (error instanceof InsufficientRewardPoolError) {
+      return {
+        statusCode: error.statusCode,
+        payload: {
+          success: false,
+          message: error.message,
+          code: error.code,
+        },
+      };
+    }
+
     throw error;
   } finally {
     session.endSession();

@@ -46,6 +46,14 @@ router.get(
   adminController.getUsersLeaderboard
 );
 
+// GET /api/v1/admin/system-config
+router.get(
+  "/system-config",
+  authMiddleware,
+  isModOrAdmin,
+  adminController.getSystemConfig
+);
+
 // POST /api/v1/admin/award-points
 router.post(
   "/award-points",
@@ -142,7 +150,7 @@ router.post(
 router.get(
   "/audit-feed",
   authMiddleware,
-  isAdminOnly,
+  isModOrAdmin,
   adminController.getAuditFeed
 );
 
