@@ -10,7 +10,6 @@ import DecryptedText from '@/components/DecryptedText';
 import TargetCursor from '@/components/TargetCursor';
 import SplitText from "@/components/SplitText";
 import BlurText from "@/components/BlurText";
-import PixelTransition from "@/components/PixelTransition";
 import MagicBento from "@/components/MagicBento"; 
 import PixelCard from "@/components/PixelCard"; 
 import DotField from "@/components/DotField"; 
@@ -48,45 +47,31 @@ function useStaggeredCluster(targetRef: RefObject<HTMLDivElement | null>) {
 }
 
 function EventPixelCard({ src, alt, label }: { src: string; alt: string; label: string }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <div 
-      // ⚡ FIX: Added cursor-target directly to the card so the TargetCursor reacts to it
-      className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl cursor-target pointer-events-auto"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className={`absolute inset-0 transition-opacity duration-300 ${isHovered ? 'opacity-0' : 'opacity-100'}`}>
-        <img 
-          src={src} 
-          alt={alt} 
-          className="w-full h-full object-cover block" 
-          loading="lazy" 
-        />
-      </div>
+    <div className="w-full h-full relative z-[50] group cursor-pointer rounded-2xl overflow-hidden bg-neutral-900 border border-white/5 shadow-2xl cursor-target pointer-events-auto">
+      
+      {/* ⚡ The Image: Grayscale by default, color & slight zoom on hover */}
+      <img 
+        src={src} 
+        alt={alt} 
+        className="w-full h-full object-cover block transition-all duration-700 grayscale group-hover:grayscale-0 group-hover:scale-105" 
+        loading="lazy" 
+      />
 
-      {isHovered && (
-        <div className="absolute inset-0 z-10 pointer-events-none">
-          <PixelTransition
-            firstContent={
-              <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            }
-            secondContent={
-              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", border: "1px solid rgba(163, 230, 53, 0.4)" }}>
-                <p className="font-mono text-sm md:text-xl font-bold text-lime-400 uppercase tracking-[0.2em] text-center px-4 drop-shadow-[0_0_10px_rgba(163,230,53,0.8)]">
-                  {label}
-                </p>
-              </div>
-            }
-            gridSize={12}
-            pixelColor="#a3e635"
-            once={false}
-            animationStepDuration={0.3}
-            style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}
-          />
+      {/* ⚡ The Gradient: Creates a dark bottom shadow so the white text is always readable */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+      {/* ⚡ The Label: Slides up into the bottom-left corner on hover */}
+      <div className="absolute bottom-4 left-4 md:bottom-5 md:left-5 z-10 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none">
+        <div className="flex items-center gap-2">
+          {/* A cool little neon indicator dot */}
+          <div className="w-1.5 h-1.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.8)]" />
+          <p className="font-mono text-[10px] md:text-xs font-bold text-white uppercase tracking-widest drop-shadow-md">
+            {label}
+          </p>
         </div>
-      )}
+      </div>
+      
     </div>
   );
 }
@@ -202,10 +187,8 @@ export default function BrilliantLanding() {
         {/* 2. THE TRANSITION & EVENT GALLERY */}
         <section className="relative px-6 pb-20 md:pb-32 max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          {/* ⚡ FIX: Removed pointer-events-auto from this wrapper so empty space doesn't block the DotField */}
           <div className="relative flex flex-col lg:sticky top-32 space-y-8 z-50 pt-10 lg:pt-0">
             
-            {/* ⚡ FIX: Applied cursor-target and pointer-events-auto directly to the text elements */}
             <p className="cursor-target pointer-events-auto inline-block text-lime-400 font-mono text-[10px] uppercase tracking-[0.5em]">
               {"// Operational Excellence"}
             </p>
@@ -228,11 +211,6 @@ export default function BrilliantLanding() {
               </div>
             </Link>
 
-            <div className="cursor-target pointer-events-auto mt-14 text-lime-400 w-fit min-h-[24px] inline-block">
-              {mounted && (
-                <DecryptedText text="Try hovering over the pictures" animateOn="view" revealDirection="start" sequential useOriginalCharsOnly={false} />
-              )}
-            </div>
           </div>
 
           {/* Event Cards Panel */}
@@ -409,6 +387,7 @@ export default function BrilliantLanding() {
             </div>
           </div>
         </section>
+
 
         {/* 4. FOOTER */}
         <footer className="px-6 md:px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-white/5 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-600 text-center md:text-left relative z-10 bg-black pointer-events-auto">
